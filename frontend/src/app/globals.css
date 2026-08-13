@@ -1,8 +1,22 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 :root {
   --background: #ffffff;
   --foreground: #171717;
+}
+
+@theme {
+  /* Brand palette — dusty rose, per the Team30 login/team page Figma design */
+  --color-brand-50: #fdf1ee;
+  --color-brand-100: #fbe4de;
+  --color-brand-200: #f6cec5;
+  --color-brand-300: #efaea0;
+  --color-brand-400: #e28a76;
+  --color-brand-500: #c48f92;
+  --color-brand-600: #b06e73;
+  --color-brand-700: #8f565b;
+  --color-brand-800: #6b4245;
+  --color-brand-900: #4a2e30;
 }
 
 @theme inline {

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
@@ -10,14 +10,17 @@ import { useAuth } from '@/hooks/useAuth'
 import { loginSchema, type LoginInput } from '@/lib/validations/auth'
 import { FullPageSpinner } from '@/components/shared/LoadingSpinner'
 
+type BannerError = { type: 'missing' | 'incorrect'; message: string }
+
 export default function SignInPage() {
   const router = useRouter()
   const { user, loading, signInWithEmail, signInWithGoogle } = useAuth()
+  const [banner, setBanner] = useState<BannerError | null>(null)
 
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitting },
+    formState: { isSubmitting },
   } = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
   })
@@ -37,22 +40,33 @@ export default function SignInPage() {
 
   if (loading) return <FullPageSpinner />
 
-  const onSubmit = async (data: LoginInput) => {
+  const onValid = async (data: LoginInput) => {
+    setBanner(null)
     try {
       await signInWithEmail(data.email, data.password)
-      toast.success('Signed in successfully')
       router.replace('/dashboard')
       router.refresh()
     } catch (error: unknown) {
       if (error instanceof Error && error.message.includes('email-not-verified')) {
         toast.error('Please verify your email before signing in.')
       } else {
-        toast.error('Invalid email or password')
+        setBanner({
+          type: 'incorrect',
+          message: 'Incorrect details: Email and/or password incorrect. Please try again',
+        })
       }
     }
   }
 
+  const onInvalid = () => {
+    setBanner({
+      type: 'missing',
+      message: 'Missing details: Please enter your email and/or password',
+    })
+  }
+
   const handleGoogleSignIn = async () => {
+    setBanner(null)
     try {
       await signInWithGoogle()
       router.replace('/dashboard')
@@ -63,15 +77,21 @@ export default function SignInPage() {
 
   return (
     <div className="space-y-6">
-      <div className="space-y-1 text-center">
-        <h1 className="text-2xl font-bold tracking-tight">Sign in</h1>
-        <p className="text-sm text-zinc-500">Enter your credentials to continue</p>
+      <div className="space-y-1">
+        <h1 className="text-3xl font-semibold tracking-tight text-zinc-900 dark:text-white">
+          Log in
+        </h1>
+        {banner && (
+          <p id="signin-banner-error" className="text-sm font-medium text-red-600" role="alert">
+            {banner.message}
+          </p>
+        )}
       </div>
 
       <button
         type="button"
         onClick={handleGoogleSignIn}
-        className="flex w-full items-center justify-center gap-3 rounded-md border border-zinc-300 bg-white px-4 py-2.5 text-sm font-medium shadow-sm transition-colors hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:hover:bg-zinc-800"
+        className="flex w-full items-center justify-center gap-3 rounded-full border border-zinc-300 bg-white px-4 py-2.5 text-sm font-medium text-zinc-900 shadow-sm transition-colors hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-white dark:hover:bg-zinc-800"
       >
         <svg className="h-4 w-4" viewBox="0 0 24 24" aria-hidden="true">
           <path
@@ -91,81 +111,59 @@ export default function SignInPage() {
             fill="#EA4335"
           />
         </svg>
-        Continue with Google
+        Sign in with Google
       </button>
 
-      <div className="relative">
-        <div className="absolute inset-0 flex items-center">
-          <span className="w-full border-t border-zinc-200 dark:border-zinc-700" />
-        </div>
-        <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-zinc-50 px-2 text-zinc-400 dark:bg-zinc-950">or</span>
-        </div>
-      </div>
+      <div className="border-t border-zinc-300 dark:border-zinc-700" />
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      <form onSubmit={handleSubmit(onValid, onInvalid)} className="space-y-4">
         <div className="space-y-1.5">
-          <label htmlFor="email" className="text-sm font-medium">
+          <label htmlFor="email" className="text-sm font-medium text-zinc-900 dark:text-white">
             Email
           </label>
           <input
             id="email"
             type="email"
             autoComplete="email"
-            aria-invalid={!!errors.email}
-            aria-describedby={errors.email ? 'email-error' : undefined}
-            className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm placeholder:text-zinc-400 focus:ring-2 focus:ring-zinc-500 focus:outline-none aria-invalid:border-red-500 dark:border-zinc-700 dark:bg-zinc-900"
-            placeholder="you@example.com"
+            aria-invalid={!!banner}
+            aria-describedby={banner ? 'signin-banner-error' : undefined}
+            className="focus:ring-brand-500 w-full rounded-md border border-zinc-400 bg-white px-3 py-2 text-sm shadow-sm placeholder:text-zinc-400 focus:ring-2 focus:outline-none dark:border-zinc-700 dark:bg-zinc-900"
             {...register('email')}
           />
-          {errors.email && (
-            <p id="email-error" className="text-xs text-red-500" role="alert">
-              {errors.email.message}
-            </p>
-          )}
         </div>
 
         <div className="space-y-1.5">
-          <div className="flex items-center justify-between">
-            <label htmlFor="password" className="text-sm font-medium">
-              Password
-            </label>
-          </div>
+          <label htmlFor="password" className="text-sm font-medium text-zinc-900 dark:text-white">
+            Password
+          </label>
           <input
             id="password"
             type="password"
             autoComplete="current-password"
-            aria-invalid={!!errors.password}
-            aria-describedby={errors.password ? 'password-error' : undefined}
-            className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm placeholder:text-zinc-400 focus:ring-2 focus:ring-zinc-500 focus:outline-none aria-invalid:border-red-500 dark:border-zinc-700 dark:bg-zinc-900"
-            placeholder="••••••••"
+            aria-invalid={!!banner}
+            aria-describedby={banner ? 'signin-banner-error' : undefined}
+            className="focus:ring-brand-500 w-full rounded-md border border-zinc-400 bg-white px-3 py-2 text-sm shadow-sm placeholder:text-zinc-400 focus:ring-2 focus:outline-none dark:border-zinc-700 dark:bg-zinc-900"
             {...register('password')}
           />
-          {errors.password && (
-            <p id="password-error" className="text-xs text-red-500" role="alert">
-              {errors.password.message}
-            </p>
-          )}
         </div>
 
         <button
           type="submit"
           disabled={isSubmitting}
-          className="w-full rounded-md bg-black px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-black dark:hover:bg-zinc-200"
+          className="bg-brand-300 hover:bg-brand-400 w-full rounded-full px-4 py-2.5 text-sm font-medium text-zinc-900 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {isSubmitting ? 'Signing in…' : 'Sign in'}
+          {isSubmitting ? 'Logging in…' : 'Log In'}
         </button>
-      </form>
 
-      <p className="text-center text-sm text-zinc-500">
-        Don&apos;t have an account?{' '}
+        <div className="border-t border-zinc-300 dark:border-zinc-700" />
+
         <Link
           href="/auth/signup"
-          className="font-medium text-zinc-900 hover:underline dark:text-white"
+          className="bg-brand-300 hover:bg-brand-400 block w-full rounded-full px-4 py-2.5 text-center text-sm font-medium text-zinc-900 transition-colors"
         >
-          Create one
+          Create Account
         </Link>
-      </p>
+      </form>
     </div>
   )
 }
