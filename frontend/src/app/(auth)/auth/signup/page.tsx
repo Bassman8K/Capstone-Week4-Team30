@@ -1,7 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
-import Link from 'next/link'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -13,11 +12,12 @@ import { FullPageSpinner } from '@/components/shared/LoadingSpinner'
 export default function SignUpPage() {
   const router = useRouter()
   const { user, loading, signUpWithEmail, signInWithGoogle } = useAuth()
+  const [missingDetails, setMissingDetails] = useState(false)
 
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitting },
+    formState: { isSubmitting },
   } = useForm<SignupInput>({
     resolver: zodResolver(signupSchema),
   })
@@ -39,7 +39,8 @@ export default function SignUpPage() {
     }
   }
 
-  const onSubmit = async (data: SignupInput) => {
+  const onValid = async (data: SignupInput) => {
+    setMissingDetails(false)
     try {
       await signUpWithEmail(data.email, data.password, data.displayName)
       router.push('/auth/signin?verification=sent')
@@ -52,17 +53,25 @@ export default function SignUpPage() {
     }
   }
 
+  const onInvalid = () => setMissingDetails(true)
+
   return (
     <div className="space-y-6">
-      <div className="space-y-1 text-center">
-        <h1 className="text-2xl font-bold tracking-tight">Create account</h1>
-        <p className="text-sm text-zinc-500">Get started for free</p>
+      <div className="space-y-1">
+        <h1 className="text-3xl font-semibold tracking-tight text-zinc-900 dark:text-white">
+          Create Account
+        </h1>
+        {missingDetails && (
+          <p id="signup-banner-error" className="text-sm font-medium text-red-600" role="alert">
+            Missing details: Please fill in all input fields
+          </p>
+        )}
       </div>
 
       <button
         type="button"
         onClick={handleGoogleSignIn}
-        className="flex w-full items-center justify-center gap-3 rounded-md border border-zinc-300 bg-white px-4 py-2.5 text-sm font-medium shadow-sm transition-colors hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:hover:bg-zinc-800"
+        className="flex w-full items-center justify-center gap-3 rounded-full border border-zinc-300 bg-white px-4 py-2.5 text-sm font-medium text-zinc-900 shadow-sm transition-colors hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-white dark:hover:bg-zinc-800"
       >
         <svg className="h-4 w-4" viewBox="0 0 24 24" aria-hidden="true">
           <path
@@ -82,121 +91,96 @@ export default function SignUpPage() {
             fill="#EA4335"
           />
         </svg>
-        Continue with Google
+        Sign in with Google
       </button>
 
-      <div className="relative">
-        <div className="absolute inset-0 flex items-center">
-          <span className="w-full border-t border-zinc-200 dark:border-zinc-700" />
-        </div>
-        <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-zinc-50 px-2 text-zinc-400 dark:bg-zinc-950">or</span>
-        </div>
-      </div>
+      <div className="border-t border-zinc-300 dark:border-zinc-700" />
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      <form onSubmit={handleSubmit(onValid, onInvalid)} className="space-y-4">
         <div className="space-y-1.5">
-          <label htmlFor="displayName" className="text-sm font-medium">
-            Name
+          <label
+            htmlFor="displayName"
+            className="text-sm font-medium text-zinc-900 dark:text-white"
+          >
+            Username
           </label>
           <input
             id="displayName"
             type="text"
             autoComplete="name"
-            aria-invalid={!!errors.displayName}
-            aria-describedby={errors.displayName ? 'display-name-error' : undefined}
-            className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm placeholder:text-zinc-400 focus:ring-2 focus:ring-zinc-500 focus:outline-none aria-invalid:border-red-500 dark:border-zinc-700 dark:bg-zinc-900"
-            placeholder="Your full name"
+            aria-invalid={missingDetails}
+            aria-describedby={missingDetails ? 'signup-banner-error' : undefined}
+            className="focus:ring-brand-500 w-full rounded-md border border-zinc-400 bg-white px-3 py-2 text-sm shadow-sm placeholder:text-zinc-400 focus:ring-2 focus:outline-none dark:border-zinc-700 dark:bg-zinc-900"
             {...register('displayName')}
           />
-          {errors.displayName && (
-            <p id="display-name-error" className="text-xs text-red-500" role="alert">
-              {errors.displayName.message}
-            </p>
-          )}
         </div>
 
         <div className="space-y-1.5">
-          <label htmlFor="email" className="text-sm font-medium">
+          <label htmlFor="email" className="text-sm font-medium text-zinc-900 dark:text-white">
             Email
           </label>
           <input
             id="email"
             type="email"
             autoComplete="email"
-            aria-invalid={!!errors.email}
-            aria-describedby={errors.email ? 'email-error' : undefined}
-            className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm placeholder:text-zinc-400 focus:ring-2 focus:ring-zinc-500 focus:outline-none aria-invalid:border-red-500 dark:border-zinc-700 dark:bg-zinc-900"
-            placeholder="you@example.com"
+            aria-invalid={missingDetails}
+            aria-describedby={missingDetails ? 'signup-banner-error' : undefined}
+            className="focus:ring-brand-500 w-full rounded-md border border-zinc-400 bg-white px-3 py-2 text-sm shadow-sm placeholder:text-zinc-400 focus:ring-2 focus:outline-none dark:border-zinc-700 dark:bg-zinc-900"
             {...register('email')}
           />
-          {errors.email && (
-            <p id="email-error" className="text-xs text-red-500" role="alert">
-              {errors.email.message}
-            </p>
-          )}
         </div>
 
         <div className="space-y-1.5">
-          <label htmlFor="password" className="text-sm font-medium">
+          <label htmlFor="password" className="text-sm font-medium text-zinc-900 dark:text-white">
             Password
           </label>
           <input
             id="password"
             type="password"
             autoComplete="new-password"
-            aria-invalid={!!errors.password}
-            aria-describedby={errors.password ? 'password-error' : undefined}
-            className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm placeholder:text-zinc-400 focus:ring-2 focus:ring-zinc-500 focus:outline-none aria-invalid:border-red-500 dark:border-zinc-700 dark:bg-zinc-900"
+            aria-invalid={missingDetails}
+            aria-describedby={missingDetails ? 'signup-banner-error' : undefined}
+            className="focus:ring-brand-500 w-full rounded-md border border-zinc-400 bg-white px-3 py-2 text-sm shadow-sm placeholder:text-zinc-400 focus:ring-2 focus:outline-none dark:border-zinc-700 dark:bg-zinc-900"
             placeholder="Min. 8 characters, 1 uppercase, 1 number"
             {...register('password')}
           />
-          {errors.password && (
-            <p id="password-error" className="text-xs text-red-500" role="alert">
-              {errors.password.message}
-            </p>
-          )}
         </div>
 
         <div className="space-y-1.5">
-          <label htmlFor="confirmPassword" className="text-sm font-medium">
-            Confirm password
+          <label
+            htmlFor="confirmPassword"
+            className="text-sm font-medium text-zinc-900 dark:text-white"
+          >
+            Confirm Password
           </label>
           <input
             id="confirmPassword"
             type="password"
             autoComplete="new-password"
-            aria-invalid={!!errors.confirmPassword}
-            aria-describedby={errors.confirmPassword ? 'confirm-password-error' : undefined}
-            className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm placeholder:text-zinc-400 focus:ring-2 focus:ring-zinc-500 focus:outline-none aria-invalid:border-red-500 dark:border-zinc-700 dark:bg-zinc-900"
-            placeholder="••••••••"
+            aria-invalid={missingDetails}
+            aria-describedby={missingDetails ? 'signup-banner-error' : undefined}
+            className="focus:ring-brand-500 w-full rounded-md border border-zinc-400 bg-white px-3 py-2 text-sm shadow-sm placeholder:text-zinc-400 focus:ring-2 focus:outline-none dark:border-zinc-700 dark:bg-zinc-900"
             {...register('confirmPassword')}
           />
-          {errors.confirmPassword && (
-            <p id="confirm-password-error" className="text-xs text-red-500" role="alert">
-              {errors.confirmPassword.message}
-            </p>
-          )}
         </div>
 
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="w-full rounded-md bg-black px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-black dark:hover:bg-zinc-200"
-        >
-          {isSubmitting ? 'Creating account…' : 'Create account'}
-        </button>
+        <div className="flex gap-3">
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="bg-brand-300 hover:bg-brand-400 flex-1 rounded-full px-4 py-2.5 text-sm font-medium text-zinc-900 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {isSubmitting ? 'Creating…' : 'Create Account'}
+          </button>
+          <button
+            type="button"
+            onClick={() => router.push('/auth/signin')}
+            className="bg-brand-300 hover:bg-brand-400 flex-1 rounded-full px-4 py-2.5 text-sm font-medium text-zinc-900 transition-colors"
+          >
+            Go back
+          </button>
+        </div>
       </form>
-
-      <p className="text-center text-sm text-zinc-500">
-        Already have an account?{' '}
-        <Link
-          href="/auth/signin"
-          className="font-medium text-zinc-900 hover:underline dark:text-white"
-        >
-          Sign in
-        </Link>
-      </p>
     </div>
   )
 }
