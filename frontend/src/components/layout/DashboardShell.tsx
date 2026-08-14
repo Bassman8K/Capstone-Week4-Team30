@@ -4,7 +4,7 @@ import { Navbar } from './Navbar'
 
 export function DashboardShell({ children }: { children: ReactNode }) {
   return (
-    <div className="bg-brand-50 flex h-screen overflow-hidden dark:bg-zinc-950">
+    <div className="bg-brand-50 flex h-screen overflow-hidden">
       <Sidebar />
       <div className="flex flex-1 flex-col overflow-hidden">
         <Navbar />

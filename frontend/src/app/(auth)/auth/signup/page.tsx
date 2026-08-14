@@ -58,9 +58,7 @@ export default function SignUpPage() {
   return (
     <div className="space-y-6">
       <div className="space-y-1">
-        <h1 className="text-3xl font-semibold tracking-tight text-zinc-900 dark:text-white">
-          Create Account
-        </h1>
+        <h1 className="text-3xl font-semibold tracking-tight text-zinc-900">Create Account</h1>
         {missingDetails && (
           <p id="signup-banner-error" className="text-sm font-medium text-red-600" role="alert">
             Missing details: Please fill in all input fields
@@ -71,7 +69,7 @@ export default function SignUpPage() {
       <button
         type="button"
         onClick={handleGoogleSignIn}
-        className="flex w-full items-center justify-center gap-3 rounded-full border border-zinc-300 bg-white px-4 py-2.5 text-sm font-medium text-zinc-900 shadow-sm transition-colors hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-white dark:hover:bg-zinc-800"
+        className="flex w-full items-center justify-center gap-3 rounded-full border border-zinc-300 bg-white px-4 py-2.5 text-sm font-medium text-zinc-900 shadow-sm transition-colors hover:bg-zinc-50"
       >
         <svg className="h-4 w-4" viewBox="0 0 24 24" aria-hidden="true">
           <path
@@ -94,14 +92,11 @@ export default function SignUpPage() {
         Sign in with Google
       </button>
 
-      <div className="border-t border-zinc-300 dark:border-zinc-700" />
+      <div className="border-t border-zinc-300" />
 
       <form onSubmit={handleSubmit(onValid, onInvalid)} className="space-y-4">
         <div className="space-y-1.5">
-          <label
-            htmlFor="displayName"
-            className="text-sm font-medium text-zinc-900 dark:text-white"
-          >
+          <label htmlFor="displayName" className="text-sm font-medium text-zinc-900">
             Username
           </label>
           <input
@@ -110,13 +105,13 @@ export default function SignUpPage() {
             autoComplete="name"
             aria-invalid={missingDetails}
             aria-describedby={missingDetails ? 'signup-banner-error' : undefined}
-            className="focus:ring-brand-500 w-full rounded-md border border-zinc-400 bg-white px-3 py-2 text-sm shadow-sm placeholder:text-zinc-400 focus:ring-2 focus:outline-none dark:border-zinc-700 dark:bg-zinc-900"
+            className="focus:ring-brand-500 w-full rounded-md border border-zinc-400 bg-white px-3 py-2 text-sm shadow-sm placeholder:text-zinc-400 focus:ring-2 focus:outline-none"
             {...register('displayName')}
           />
         </div>
 
         <div className="space-y-1.5">
-          <label htmlFor="email" className="text-sm font-medium text-zinc-900 dark:text-white">
+          <label htmlFor="email" className="text-sm font-medium text-zinc-900">
             Email
           </label>
           <input
@@ -125,13 +120,13 @@ export default function SignUpPage() {
             autoComplete="email"
             aria-invalid={missingDetails}
             aria-describedby={missingDetails ? 'signup-banner-error' : undefined}
-            className="focus:ring-brand-500 w-full rounded-md border border-zinc-400 bg-white px-3 py-2 text-sm shadow-sm placeholder:text-zinc-400 focus:ring-2 focus:outline-none dark:border-zinc-700 dark:bg-zinc-900"
+            className="focus:ring-brand-500 w-full rounded-md border border-zinc-400 bg-white px-3 py-2 text-sm shadow-sm placeholder:text-zinc-400 focus:ring-2 focus:outline-none"
             {...register('email')}
           />
         </div>
 
         <div className="space-y-1.5">
-          <label htmlFor="password" className="text-sm font-medium text-zinc-900 dark:text-white">
+          <label htmlFor="password" className="text-sm font-medium text-zinc-900">
             Password
           </label>
           <input
@@ -140,17 +135,14 @@ export default function SignUpPage() {
             autoComplete="new-password"
             aria-invalid={missingDetails}
             aria-describedby={missingDetails ? 'signup-banner-error' : undefined}
-            className="focus:ring-brand-500 w-full rounded-md border border-zinc-400 bg-white px-3 py-2 text-sm shadow-sm placeholder:text-zinc-400 focus:ring-2 focus:outline-none dark:border-zinc-700 dark:bg-zinc-900"
+            className="focus:ring-brand-500 w-full rounded-md border border-zinc-400 bg-white px-3 py-2 text-sm shadow-sm placeholder:text-zinc-400 focus:ring-2 focus:outline-none"
             placeholder="Min. 8 characters, 1 uppercase, 1 number"
             {...register('password')}
           />
         </div>
 
         <div className="space-y-1.5">
-          <label
-            htmlFor="confirmPassword"
-            className="text-sm font-medium text-zinc-900 dark:text-white"
-          >
+          <label htmlFor="confirmPassword" className="text-sm font-medium text-zinc-900">
             Confirm Password
           </label>
           <input
@@ -159,7 +151,7 @@ export default function SignUpPage() {
             autoComplete="new-password"
             aria-invalid={missingDetails}
             aria-describedby={missingDetails ? 'signup-banner-error' : undefined}
-            className="focus:ring-brand-500 w-full rounded-md border border-zinc-400 bg-white px-3 py-2 text-sm shadow-sm placeholder:text-zinc-400 focus:ring-2 focus:outline-none dark:border-zinc-700 dark:bg-zinc-900"
+            className="focus:ring-brand-500 w-full rounded-md border border-zinc-400 bg-white px-3 py-2 text-sm shadow-sm placeholder:text-zinc-400 focus:ring-2 focus:outline-none"
             {...register('confirmPassword')}
           />
         </div>
