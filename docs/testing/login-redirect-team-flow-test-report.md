@@ -6,7 +6,8 @@ Role: Dev 1 — Jonathan
 ## Scope
 
 Verify that: (1) an authenticated user landing on `/auth/signin` is redirected to
-`/dashboard`, (2) an unauthenticated user requesting a protected route (e.g. `/teams`)
+`/teams` (per the assignment sheet: "a styled login page leading into a team page"),
+(2) an unauthenticated user requesting a protected route (e.g. `/teams`)
 is redirected to `/auth/signin`, and (3) the team page renders the team name and one
 card per member once reached.
 
@@ -45,10 +46,10 @@ errors.
 1. `pnpm run bootstrap` (or fill in `.env` by hand) to connect a Spark-plan Firebase
    project with Auth enabled.
 2. `pnpm run dev`, open `/auth/signin`.
-3. Sign in with a verified test account → expect an immediate redirect to `/dashboard`.
-4. Click **Teams** in the sidebar → expect `/teams` to render the team name and one
-   card per member (PM, BA, UX, Dev), each with a name, role badge, and blurb.
-5. Sign out, then navigate directly to `/teams` → expect a redirect to `/auth/signin`
+3. Sign in with a verified test account → expect an immediate redirect to `/teams`,
+   rendering the team name and one card per member (PM, BA, UX, Dev), each with a
+   name, role badge, and blurb.
+4. Sign out, then navigate directly to `/teams` → expect a redirect to `/auth/signin`
    (enforced by `requireAuth()` in `(dashboard)/layout.tsx`).
 
 ## Known limitation
