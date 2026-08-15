@@ -1,7 +1,23 @@
 import type { TeamMember } from './types'
 
-// Placeholder roster — per Task 1 (BA), real names/photos/blurbs land in a later pass.
-// Replace each entry's name, photoUrl, and blurb once the team supplies real content.
+// ─────────────────────────────────────────────────────────────────────────
+// TEAM ROSTER — this is the only file you need to edit to add yourself.
+// See docs/ADD-YOURSELF-TO-TEAM-PAGE.md for a no-coding-required walkthrough
+// using GitHub's website.
+//
+// Per person, fill in:
+//   name:     your real name, in quotes                    e.g. 'Mei Ann Goh'
+//   role:     one of 'PM' | 'BA' | 'UX' | 'Dev'  (keep the quotes)
+//   blurb:    one or two sentences about you, in quotes
+//   photoUrl: '/team/<your-file-name>' — upload your photo to
+//             frontend/public/team/ first, then point this at it.
+//             Leave this line out entirely if you don't have a photo yet —
+//             a placeholder icon shows instead.
+//
+// To add a new person (e.g. a second Dev), copy one whole { ... } block,
+// paste it below the last one, give it a unique id, and fill in the fields.
+// Every block needs a comma after its closing }.
+// ─────────────────────────────────────────────────────────────────────────
 export const TEAM_NAME = 'Team 30'
 
 export const teamMembers: TeamMember[] = [
