@@ -42,8 +42,9 @@ export const teamMembers: TeamMember[] = [
   },
   {
     id: 'dev',
-    name: '[Insert Name]',
+    name: '[Jonathan Edwin]',
     role: 'Dev',
-    blurb: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor.',
+    blurb: 'Aspiring developer who loves music and trains.',
+    photoUrl: '/team/jonathan.jpg'
   },
 ]
