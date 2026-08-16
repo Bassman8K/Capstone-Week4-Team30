@@ -30,9 +30,10 @@ export const teamMembers: TeamMember[] = [
   },
   {
     id: 'ba',
-    name: '[Insert Name]',
+    name: 'Venghai Yeap (Harry)',
     role: 'BA',
-    blurb: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor.',
+    blurb: 'Eat, Sleep, Gym, work Repeat.',
+    photoUrl: '/team/venghai.jpg',
   },
   {
     id: 'ux',
