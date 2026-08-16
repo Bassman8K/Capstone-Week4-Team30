@@ -80,6 +80,7 @@ Restart the dev server after changing `.env` — `NEXT_PUBLIC_*` variables are b
 | `'next' is not recognized` / `Command "next" not found` | Run `pnpm install` from the **repo root**. If it persists, delete all `node_modules` folders and reinstall. |
 | Ignored build scripts warning from pnpm | Build approvals live in `pnpm-workspace.yaml` (`allowBuilds`) — re-run `pnpm install`. |
 | "Missing or insufficient permissions" | Firestore security rules don't allow that access — add rules in `firebase/firestore.rules`, then deploy them (`npx firebase-tools deploy --only firestore:rules`). |
+| "Google sign-in failed" on a deployed URL (email/password works fine) | The domain isn't in Firebase's Authorized domains list. See [docs/DEPLOY-TO-VERCEL.md § Step 7](docs/DEPLOY-TO-VERCEL.md#step-7--authorize-the-domain-for-google-sign-in). |
 | Commit rejected | Message must be Conventional Commits (`feat: …`, `fix: …`). |
 
 More beginner-oriented pitfalls: [docs/GUIDE.md § Common pitfalls](docs/GUIDE.md#6-common-pitfalls).

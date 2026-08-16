@@ -103,6 +103,7 @@ Create an account via the sign-up page and check the Firebase console (Authentic
 | Changed an env var, nothing happened | Edit the root `.env` (not the generated files), then restart `pnpm run dev` — `NEXT_PUBLIC_*` values are baked in at startup. |
 | Edited `frontend/.env.local` or `backend/.env` and it got overwritten | Those files are generated. Make the change in the root `.env` instead. |
 | "Missing or insufficient permissions" from Firestore | Your security rules don't allow the read/write. Add rules for the collection in `firebase/firestore.rules`, then deploy them: `npx firebase-tools deploy --only firestore:rules`. |
+| "Google sign-in failed" on a deployed URL, but email/password works | The domain isn't in Firebase's Authorized domains list yet. See [DEPLOY-TO-VERCEL.md § Step 7](DEPLOY-TO-VERCEL.md#step-7--authorize-the-domain-for-google-sign-in). |
 | `Invalid project id: REPLACE_WITH_...` | Set your real project id in `.firebaserc`. |
 | Imported `firebase/firestore` in a page and it crashed | Client SDK in a Server Component. Use `@/lib/firebase/admin` on the server, or move the code into a `'use client'` component. |
 | Hook/`useState` error in a page | The file needs `'use client'` at the top — or better, move the interactive part into its own small Client Component. |
