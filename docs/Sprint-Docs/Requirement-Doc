@@ -1,0 +1,468 @@
+Sprint 1 – Login & Team Page Requirements 
+
+ 
+Document Information 
+Project: Bootstrap Restyling 
+
+Sprint: Sprint 1 
+
+Document: Login & Team Page Requirements 
+Version: 1.0 
+Date: 27/07/2026 
+Prepared By: Venghai Yeap 
+Reviewed By: Bailey Dwyer 
+
+ 
+
+Purpose 
+
+The purpose of this project is to provide a functional re-styling of a login page without altering the authentication process, which re-directs the user into a stylized team's page which displays the teams name, each team member's photo/name/role, followed by a short blurb 
+
+Business Requirement Overview 
+
+3.1 Assumptions and Constraints 
+
+3.1.1 An existing login page already exists in the boilerplate 
+
+3.1.2 Existing login/authentication functionality is already functional 
+
+3.1.3 The login page requires visual changes only 
+
+3.1.4 Team Member information is known prior to implementational 
+
+3.1.5 Existing project styling/component should be used where appropriate 
+
+3.2 In Scope 
+
+Login Page 
+
+3.2.1 Restyling the login page 
+
+3.2.2 Update visual layout 
+
+3.2.3 Preserve existing login behaviour and infrastructure 
+
+3.2.4 successful login re-directs to teams page 
+
+3.2.5 Create account button reveals a name, password and create password option 
+
+ 
+
+Teams Page 
+
+3.2.5 Create Teams page 
+
+3.5.6 Display all required team members 
+
+3.5.7 Display team members: 
+
+Photo 
+
+Name 
+
+Role 
+
+Short Blurb 
+
+ 
+
+ 
+
+3.3 Out of Scope 
+
+3.3.1 Creating/Altering new authentication system 
+
+ 
+
+4 Requirements 
+
+4.1 Functional requirements 
+
+LOGIN-FR-01 – Existing Login Functionality 
+The existing login functionality must not be altered or changed during the re-styling process of the login process 
+
+Acceptance Criteria: 
+
+Existing authentication behaviour must remain unchanged after restyling. 
+
+ 
+
+LOGIN-FR-02 – Login Form Field 
+The new login page must continue to display the existing login fields 
+
+Field 
+
+Required 
+
+Validation 
+
+Display Rules 
+
+Email 
+
+Yes 
+
+Existing Validation 
+
+Always visible in both login and create account modes 
+
+Password 
+
+Yes 
+
+Existing Validation 
+
+Always visible in both login and create account modes 
+
+Name  
+
+Yes 
+
+Existing Validation 
+
+Hidden by default, displayed only when the user creates account 
+
+Password 
+
+Yes 
+
+Existing Validation 
+
+Hidden by default, displayed only when the user creates account 
+
+Confirm Password 
+
+Yes 
+
+Existing Validation 
+
+Hidden by default, displayed only when the user creates account 
+
+ 
+
+ 
+
+ 
+
+ 
+
+LOGIN-FR-03 – Login and create account mods 
+The Login page must support two form states 
+
+Login Mode 
+
+Create Account Mode 
+
+The user must be able to switch between the two modes using the appropriate Login/create account control 
+
+Acceptance Criteria: 
+
+Login mode must display only the fields required for login.  
+
+Create Account mode must display all fields required for account creation.  
+
+Switching between modes must not cause errors or break the form. 
+
+Page must initiate on the login mode 
+
+ 
+
+LOGIN-FR-04 – Navigation After Login 
+Following a successful login, the user should be able to access the team page 
+
+Acceptance Criteria: 
+
+A successful login must allow the user to access the Teams page. 
+
+ 
+
+TEAMS-FR-01 – Team Name 
+Team name must be visible on the teams' page 
+
+Acceptance Criteria: 
+
+Must not be empty 
+
+Maximum of 25 Characters 
+
+Must be visible on the Teams Page 
+
+ 
+
+TEAMS-FR-02 – Member Name 
+The name of each member shall be displayed below their profile portrait with the corresponding person 
+
+Acceptance Criteria: 
+
+Must not be empty 
+
+Maximum of 30 Characters 
+
+Long names must not overflow or break the page 
+
+ 
+
+ 
+
+ 
+
+ 
+
+TEAMS-FR-03 – Member Photo 
+A portrait of each member shall be displayed on the Teams page with the corresponding person 
+
+Acceptance Criteria: 
+
+Must use an accepted image format [JPG / PNG / WebP] 
+
+Display Rules: 
+
+Must be displayed above member name 
+
+Must not appear stretched or distorted 
+
+If image cannot be loaded, a fallback must be displayed 
+
+ 
+
+TEAMS-FR-04 – Role 
+Each Team member’s role shall be displayed with the corresponding person 
+
+Acceptance Criteria: 
+
+Must not be empty 
+
+Maximum of 25 Characters 
+
+ 
+
+TEAMS-FR-05 – Blurb 
+A small blurb of the corresponding person shall be visible below their role 
+
+Acceptance Criteria: 
+
+A short blurb must be displayed for each team member 
+
+Text must wrap correctly 
+
+ Longer blurbs must not overlap other page content 
+
+ 
+
+4.2 Non-Functional Requirements 
+
+LOGIN-NFR-01 – Usability 
+The Login/signup page must be simple and easy for users to understand and navigate 
+
+Acceptance Criteria: 
+
+At least 95% of test users must be able to correctly identify whether the page is in Login or Create Account mode.  
+
+At least 90% of test users must be able to complete the Login or Create Account form without assistance.  
+
+Users must be able to switch between Login and Create Account modes within 2 interactions or fewer. 
+
+ 
+
+ 
+
+ 
+
+ 
+
+LOGIN-NFR-02 – Compatibility 
+
+The Login page must function correctly on commonly used modern web browsers 
+
+Acceptance Criteria: 
+
+At least 95% of test users must be able to correctly identify whether the page is in Login or Create Account mode.  
+
+At least 90% of test users must be able to complete the Login or Create Account form without assistance.  
+
+Users must be able to switch between Login and Create Account modes within 2 interactions or fewer. 
+
+ 
+
+ 
+
+TEAMS-NFR-01 – Usability 
+The Teams signup page must be simple and easy for users to understand and navigate 
+
+Acceptance Criteria: 
+
+At least 95% of test users must be able to correctly identify whether the page is in Login or Create Account mode.  
+
+At least 90% of test users must be able to complete the Login or Create Account form without assistance.  
+
+Users must be able to switch between Login and Create Account modes within 2 interactions or fewer. 
+
+ 
+
+ 
+
+TEAMS-NFR-02 – Compatibility 
+
+The teams page must function correctly on commonly used modern web browsers 
+
+Acceptance Criteria: 
+
+At least 95% of test users must be able to correctly identify whether the page is in Login or Create Account mode.  
+
+At least 90% of test users must be able to complete the Login or Create Account form without assistance.  
+
+Users must be able to switch between Login and Create Account modes within 2 interactions or fewer. 
+
+
+5. Edge Cases 
+
+5.1 Login Page 
+
+ 
+
+LOGIN-EC-01 – Empty Login Fields 
+Scenario: The user attempts to log in without entering an email or password. 
+
+Expected Behaviour: 
+
+Login must not proceed.  
+
+Existing validation must inform the user that the required field is missing.  
+
+The page must remain in Login mode. 
+
+ 
+
+LOGIN-EC-02 – Invalid Login Credentials 
+Scenario: The user enters an incorrect email or password. 
+
+Expected Behaviour: 
+
+The user must not be authenticated.  
+
+Existing authentication error handling must be preserved.  
+
+The user must remain on the Login page. 
+
+ 
+
+LOGIN-EC-03 – Switching Between Login and Create Account Modes 
+Scenario: The user repeatedly switches between Login and Create Account modes. 
+
+Expected Behaviour: 
+
+The form must continue to function correctly.  
+
+Email and Password fields must remain visible.  
+
+Name and Confirm Password fields must only appear in Create Account mode.  
+
+Switching modes must not cause duplicate fields or page errors. 
+
+ 
+
+LOGIN-EC-04 – Create Account With Missing Fields 
+Scenario: The user attempts to create an account without completing all required fields. 
+
+Expected Behaviour: 
+
+Account creation must not proceed.  
+
+Existing validation must identify the missing required fields.  
+
+The form must remain in Create Account mode. 
+
+ 
+
+LOGIN-EC-05 – Unsuccessful Login Navigation 
+Scenario: The user's login attempt is unsuccessful. 
+
+Expected Behaviour: 
+
+The user must not be redirected to the Teams page.  
+
+Access to the Teams page must only occur following successful authentication. 
+
+ 
+
+5.2 Teams Page 
+
+TEAMS-EC-01 – Missing Member Photo 
+Scenario: A team member does not have a valid profile image. 
+
+Expected Behaviour: 
+
+A fallback/default image must be displayed.  
+
+The member's Name, Role and Blurb must continue to display normally.  
+
+The missing image must not break the page. 
+
+ 
+
+TEAMS-EC-02 – Long Member Name 
+Scenario: A member's name approaches the 30-character limit. 
+
+Expected Behaviour: 
+
+The name must remain readable.  
+
+The text must not overflow its allocated area.  
+
+The name must not overlap other content. 
+
+ 
+
+TEAMS-EC-03 – Long Team Name 
+Scenario: The team name approaches the maximum 25-character limit. 
+
+Expected Behaviour: 
+
+The team name must remain fully readable.  
+
+It must not overflow or break the page layout. 
+
+ 
+
+ 
+
+ 
+
+TEAMS-EC-04 – Long Role Name 
+Scenario: A member's role approaches the maximum 25-character limit. 
+
+Expected Behaviour: 
+
+The role must remain readable.  
+
+Text must wrap where necessary.  
+
+The role must not overlap other content. 
+
+ 
+
+TEAMS-EC-05 – Long Blurb 
+Scenario: A team member has a significantly longer blurb than other members. 
+
+Expected Behaviour: 
+
+The text must wrap correctly.  
+
+The blurb must not overlap the member's other information.  
+
+The longer content must not break surrounding team member content. 
+
+ 
+
+TEAMS-EC-06 – Multiple Team Members 
+Scenario: The Teams page contains several team members with different name, role and blurb lengths. 
+
+Expected Behaviour: 
+
+Each member's information must remain associated with the correct person.  
+
+One member's content must not overlap another member's content.  
+
+All members must remain readable and identifiable. 
+
+ 
