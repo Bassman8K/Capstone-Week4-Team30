@@ -4,7 +4,7 @@ This guide takes your local app live on the internet. It assumes `pnpm run dev` 
 
 **What you're deploying:** the `frontend/` app only. It's a full Next.js server (pages + Server Actions + the `/api/auth/session` route) that talks straight to Firebase using the Admin SDK — that's your real backend. The separate `backend/` Express app (Cloud Functions) is optional scaffolding; skip it unless your feature specifically calls it (see the box at the end).
 
-Two things need to be live for the app to fully work: **Vercel** (hosts the site) and **Firestore security rules** (protects the database). Steps 1–6 cover Vercel. Step 7 covers the rules.
+Three things need to be live for the app to fully work: **Vercel** (hosts the site), **Google sign-in authorization** (if you use it), and **Firestore security rules** (protects the database). Steps 1–6 cover Vercel. Step 7 covers Google sign-in. Step 8 covers the rules.
 
 ---
 
@@ -94,7 +94,44 @@ Still on the same screen, expand **Environment Variables** and add each row belo
 
 **From now on, every push to `main` auto-deploys to this URL.** There's no approval step on Vercel's side — merging to `main` means it's live.
 
-## Step 7 — Deploy Firestore security rules
+## Step 7 — Authorize the domain for Google sign-in
+
+Skip this step if your login page doesn't have a "Sign in with Google" button.
+
+Firebase blocks Google (and any OAuth-popup) sign-in on domains it doesn't
+recognize — email/password sign-in isn't affected, only Google. The symptom
+is a **"Google sign-in failed"** toast in the app, with a console warning
+like:
+
+```
+Info: The current domain is not authorized for OAuth operations. This will
+prevent signInWithPopup, signInWithRedirect... Add your domain
+(your-app.vercel.app) to the OAuth redirect domains list in the Firebase
+console -> Authentication -> Settings -> Authorized domains tab.
+```
+
+Fix it in the Firebase Console:
+
+1. **Authentication → Settings** tab → **Authorized domains**
+2. Click **Add domain**
+3. Add the exact domain from your Vercel URL — e.g. `your-app.vercel.app`
+   (no `https://`, no trailing slash)
+
+**Important:** every Vercel deployment gets its own unique, one-off URL
+(e.g. `your-app-a1b2c3d4-yourteam.vercel.app`) — those change on every
+deploy and you can't (and shouldn't try to) keep adding them. Only add the
+**stable** URLs:
+- Your primary alias (shown on the Vercel project's Overview page, or
+  whatever you set `NEXT_PUBLIC_APP_URL` to in Step 6)
+- `<project>-<team>.vercel.app` and `<project>-git-main-<team>.vercel.app`
+  (visible under **Deployments → (latest Production deployment) → Aliases**,
+  or via `vercel inspect <deployment-url>`)
+
+Then always share/bookmark one of those stable URLs — not a link copied from
+a specific row in the **Deployments** list, since that always points at that
+one build's unique URL, not your live domain.
+
+## Step 8 — Deploy Firestore security rules
 
 This is separate from Vercel and easy to forget — without it, Firestore may reject every read/write from your live app even though the site loads fine.
 
@@ -111,8 +148,9 @@ npx firebase-tools deploy --only firestore:rules
 
 Visit your Vercel URL and:
 1. Try signing up with a new account — if this fails, double check the `NEXT_PUBLIC_FIREBASE_*` values in Step 5
-2. Try creating something that saves to Firestore (e.g. a note) — if this fails with a permissions error, Step 7 (rules) probably wasn't done
-3. Refresh the page while signed in — if you get signed out, check `FIREBASE_SERVICE_ACCOUNT_KEY_BASE64` was pasted completely (it's a long string and easy to truncate when copying)
+2. Try **Sign in with Google** specifically — if this fails but email/password works fine, that's Step 7 (authorized domains), not Step 5
+3. Try creating something that saves to Firestore (e.g. a note) — if this fails with a permissions error, Step 8 (rules) probably wasn't done
+4. Refresh the page while signed in — if you get signed out, check `FIREBASE_SERVICE_ACCOUNT_KEY_BASE64` was pasted completely (it's a long string and easy to truncate when copying)
 
 ---
 
