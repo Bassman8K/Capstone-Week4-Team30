@@ -36,9 +36,10 @@ export const teamMembers: TeamMember[] = [
   },
   {
     id: 'ux',
-    name: '[Insert Name]',
+    name: 'Mei Ann Kassandra Goh',
     role: 'UX',
-    blurb: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor.',
+    blurb: 'I really want to go to the Bahrain Grand Prix held in Malaysia',
+    photoUrl: '/team/mei.jpg'
   },
   {
     id: 'dev',
