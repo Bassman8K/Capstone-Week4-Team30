@@ -23,9 +23,10 @@ export const TEAM_NAME = 'Team 30'
 export const teamMembers: TeamMember[] = [
   {
     id: 'pm',
-    name: '[Insert Name]',
+    name: 'Bailey Dwyer',
     role: 'PM',
-    blurb: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor.',
+    blurb: 'I cant hit my protein.',
+    photoUrl: '/team/cropped_bailey_d_ford_focus-3.jpg',
   },
   {
     id: 'ba',
