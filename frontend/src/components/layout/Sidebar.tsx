@@ -1,7 +1,10 @@
 import Link from 'next/link'
-import { LayoutDashboard, Users, User, Settings } from 'lucide-react'
+import { LayoutDashboard, MessageSquare, PlusSquare, Users, User, Settings } from 'lucide-react'
 
+// The first three mirror the mobile BottomNav tabs — keep them in sync.
 const navItems = [
+  { href: '/log', label: 'Log', icon: PlusSquare },
+  { href: '/ai-chat', label: 'AI Chat', icon: MessageSquare },
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/teams', label: 'Teams', icon: Users },
   { href: '/profile', label: 'Profile', icon: User },
