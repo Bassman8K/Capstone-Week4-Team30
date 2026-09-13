@@ -130,24 +130,17 @@ pnpm run validate         # Check for unreplaced template placeholders
 
 Security is enforced in independent layers — Claude Code guard hooks, HTTP hardening (helmet/CORS/rate limits), token + session-cookie auth, Zod input validation, default-deny Firestore rules, and CI scanning (`pnpm audit`). See [docs/SECURITY.md](docs/SECURITY.md).
 
-### Known `pnpm audit` findings (manual fix)
+### Patched transitive CVEs
 
+A few transitive dependencies pull in vulnerable versions that their parent
+packages haven't updated yet. These are pinned to patched versions via
+`overrides:` in `pnpm-workspace.yaml` — `js-yaml`, `nanoid`, `postcss`, and
+`sharp`. Each entry there has a comment explaining why it exists.
 
-`pnpm audit` currently flags two high-severity CVEs — both transitive, dev/build-time only, not runtime-reachable:
-
-| Package | Issue | Pulled in by |
-|---------|-------|--------------|
-| `js-yaml` | CVE-2026-59870 — quadratic CPU DoS on `!!omap` resolution | eslint's dependency chain (lint-time only) |
-| `nanoid` | Infinite loop when a custom generator's `size` is 0 | postcss, used by Tailwind/Next/Vitest builds (build-time only) |
-
-To patch: add these two lines under `overrides:` in `pnpm-workspace.yaml`, then run `pnpm install`:
-
-```yaml
-  js-yaml: '^4.3.1'
-  nanoid: '^3.3.17'
-```
-
-Confirm with `pnpm audit` — should show 0 high/critical findings.
+If `pnpm audit --audit-level=high` starts failing after a dependency bump,
+check whether a new advisory needs the same treatment — add the patched
+range under `overrides:`, run `pnpm install`, and confirm the audit comes
+back with 0 high/critical findings.
 
 ## Git Workflow
 
