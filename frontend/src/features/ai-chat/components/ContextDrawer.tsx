@@ -1,11 +1,9 @@
 import type { ChildContextSnapshot } from '@/features/children/types'
 
 /**
- * The "<name>'s Info" panel that slides in from the chat's hamburger menu
- * ("AI - showing context" frame). Shows what the assistant already knows, so
- * the carer can see why it's advising what it is.
- *
- * Rendered inline for now — the slide-in behaviour comes with the real screen.
+ * The "<name>'s Info" panel behind the chat's hamburger menu ("AI - showing
+ * context" frame). Shows what the assistant already knows, so the carer can
+ * see why it's suggesting what it is.
  */
 export function ContextDrawer({
   childName,
@@ -23,16 +21,18 @@ export function ContextDrawer({
   ]
 
   return (
-    <aside className="rounded-lg border border-zinc-200 bg-white p-4">
-      <h2 className="text-sm font-semibold text-zinc-900">{childName}&apos;s Info</h2>
-      <dl className="mt-3 space-y-2">
+    <aside className="rounded-lg bg-slate-700 p-4 text-white">
+      <h2 className="text-sm font-semibold">{childName}&apos;s Info</h2>
+      <ul className="mt-3 space-y-2 text-sm">
         {rows.map(([label, value]) => (
-          <div key={label} className="flex justify-between gap-4 text-sm">
-            <dt className="text-zinc-500">{label}</dt>
-            <dd className="text-zinc-900">{value}</dd>
-          </div>
+          <li key={label} className="flex gap-2">
+            <span aria-hidden="true">•</span>
+            <span>
+              {label}: {value}
+            </span>
+          </li>
         ))}
-      </dl>
+      </ul>
     </aside>
   )
 }

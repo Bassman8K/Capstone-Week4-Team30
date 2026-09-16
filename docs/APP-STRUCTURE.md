@@ -42,7 +42,7 @@ mobile bottom-tab bar in the designs:
 |------|-------|--------|
 | Log | `/log` | Lists the six log types |
 | ↳ each log | `/log/{mood,food,sleep,stress,schedule,observation}` | Stub — no entry form |
-| AI Chat | `/ai-chat` | Layout only — composer not wired |
+| AI Chat | `/ai-chat` | Working end-to-end against mocked data |
 | Dashboard | `/dashboard` | Card layout, all placeholders |
 | ↳ Observations | `/dashboard/observations` | Stub — no timeline |
 | Settings | `/settings` | From the boilerplate |
@@ -70,7 +70,9 @@ One folder per domain, following the convention in `frontend/CLAUDE.md`:
 
 ```
 features/
-├── ai-chat/      ChatShell, ContextDrawer, FeedbackWidget + request/response types
+├── ai-chat/      ChatPanel (the screen), AssistantReply, ContextDrawer,
+│                 FeedbackWidget, MessageBubble + the request/response
+│                 contract and the mock assistant
 ├── logging/      LogTypeCard + the six log types (data.ts) + entry types
 ├── dashboard/    DashboardCard — the shared card shape the dashboard is built from
 └── children/     ChildProfile and the context snapshot the assistant reads
@@ -94,6 +96,18 @@ SupportResponse  → possibleContext, suggestedActions, followUpQuestion
 These are duplicated rather than shared, so **changing one means changing the
 other**. Worth promoting to a shared workspace package once something else
 needs them.
+
+### Connecting the real assistant
+
+`/ai-chat` currently calls `requestSupport()` from `features/ai-chat/mock.ts`,
+which returns canned responses after a short delay. It already takes a real
+`SupportRequest` and returns a real `SupportResponse`, so connecting DEV 2's
+Hermes/Ollama agent means replacing that function's body with a fetch to the
+backend — no component changes.
+
+Mock copy is deliberately support-only and non-diagnostic. The BA's AI
+behaviour contract will define the real guardrails and the category taxonomy
+(`CATEGORY` in `ChatPanel.tsx` is a placeholder until then).
 
 ---
 
