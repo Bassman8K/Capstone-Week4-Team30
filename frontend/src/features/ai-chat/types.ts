@@ -22,16 +22,18 @@ export interface SupportResponse {
 
 export type ChatAuthor = 'user' | 'assistant'
 
-export interface ChatMessage {
-  id: string
-  author: ChatAuthor
-  body: string
-  /**
-   * Rendered as the inline links in the assistant's reply — e.g. "turning
-   * tomatoes into soup" / "find a reliable alternative".
-   */
-  suggestedActions?: string[]
-}
+/**
+ * One turn in the conversation. Assistant turns are either a structured
+ * reply (context + suggestions + follow-up) or plain text, so the UI knows
+ * which to render without inspecting the body.
+ */
+export type ChatTurn =
+  | { id: string; kind: 'user'; body: string }
+  | { id: string; kind: 'assistant-text'; body: string }
+  | { id: string; kind: 'assistant-reply'; response: SupportResponse }
+
+/** Where a request is up to — drives the loading and error states. */
+export type ChatStatus = 'idle' | 'sending' | 'error'
 
 /** The three options in the "How was my help?" widget. */
 export type HelpfulnessRating = 'not-helpful' | 'kinda-helpful' | 'very-helpful'
