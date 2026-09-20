@@ -4,7 +4,7 @@ export const OLLAMA_BASE_URL =
 export const OLLAMA_MODEL =
   process.env.OLLAMA_MODEL ?? "hermes3:3b";
 
-export interface OllamaSupportRequest {
+export interface HermesContext {
   childName: string;
   age: number;
   category: string;
@@ -14,8 +14,14 @@ export interface OllamaSupportRequest {
   previousStrategies?: string[];
 }
 
-export interface OllamaSupportResponse {
+export interface HermesRequest {
+  context: HermesContext;
+  userMessage: string;
+}
+
+export interface HermesResponse {
   possibleContext: string;
   suggestedActions: string[];
   followUpQuestion: string;
+  safetyNotice?: string | null;
 }
