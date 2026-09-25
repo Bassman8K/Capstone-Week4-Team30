@@ -15,6 +15,20 @@ export function AssistantReply({
 }) {
   return (
     <div className="space-y-2">
+      {/*
+        Shown above the advice, not among it — when the agent flags something
+        needing more than everyday support, that shouldn't be one bullet
+        competing with meal tips.
+      */}
+      {response.safetyNotice && (
+        <p
+          role="alert"
+          className="rounded border border-amber-300 bg-amber-50 px-2.5 py-2 text-amber-900"
+        >
+          {response.safetyNotice}
+        </p>
+      )}
+
       <p>{response.possibleContext}</p>
 
       {response.suggestedActions.length > 0 && (

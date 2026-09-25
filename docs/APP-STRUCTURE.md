@@ -42,7 +42,7 @@ mobile bottom-tab bar in the designs:
 |------|-------|--------|
 | Log | `/log` | Lists the six log types |
 | ↳ each log | `/log/{mood,food,sleep,stress,schedule,observation}` | Stub — no entry form |
-| AI Chat | `/ai-chat` | Working end-to-end against mocked data |
+| AI Chat | `/ai-chat` | Working end-to-end against DEV 2's local Hermes adapter |
 | Dashboard | `/dashboard` | Card layout, all placeholders |
 | ↳ Observations | `/dashboard/observations` | Stub — no timeline |
 | Settings | `/settings` | From the boilerplate |
@@ -72,7 +72,8 @@ One folder per domain, following the convention in `frontend/CLAUDE.md`:
 features/
 ├── ai-chat/      ChatPanel (the screen), AssistantReply, ContextDrawer,
 │                 FeedbackWidget, MessageBubble + the request/response
-│                 contract and the mock assistant
+│                 contract, the requestSupport Server Action and the
+│                 mock assistant it falls back to
 ├── logging/      LogTypeCard + the six log types (data.ts) + entry types
 ├── dashboard/    DashboardCard — the shared card shape the dashboard is built from
 └── children/     ChildProfile and the context snapshot the assistant reads
@@ -90,24 +91,37 @@ automatically. Remember to add the matching route under `app/(dashboard)/log/`.
 ```
 SupportRequest   → childName, age, category, currentSituation,
                    recentContext?, knownTriggers?, previousStrategies?
-SupportResponse  → possibleContext, suggestedActions, followUpQuestion
+SupportResponse  → possibleContext, suggestedActions, followUpQuestion,
+                   safetyNotice?
 ```
 
 These are duplicated rather than shared, so **changing one means changing the
 other**. Worth promoting to a shared workspace package once something else
 needs them.
 
-### Connecting the real assistant
+### The real assistant
 
-`/ai-chat` currently calls `requestSupport()` from `features/ai-chat/mock.ts`,
-which returns canned responses after a short delay. It already takes a real
-`SupportRequest` and returns a real `SupportResponse`, so connecting DEV 2's
-Hermes/Ollama agent means replacing that function's body with a fetch to the
-backend — no component changes.
+`/ai-chat` calls `requestSupport()` from
+`features/ai-chat/actions/requestSupport.ts` — a Server Action that POSTs to
+DEV 2's local Hermes adapter:
 
-Mock copy is deliberately support-only and non-diagnostic. The BA's AI
-behaviour contract will define the real guardrails and the category taxonomy
-(`CATEGORY` in `ChatPanel.tsx` is a placeholder until then).
+```
+ChatPanel → requestSupport()  →  POST /api/hermes (:8787)  →  Ollama → hermes3:3b
+```
+
+Going through the server keeps the adapter's address off the client and avoids
+depending on its CORS config; pointing at a deployed endpoint later is a change
+to `HERMES_ADAPTER_URL` only. A local 3B model takes roughly 5–8 seconds, so
+the loading state carries real weight.
+
+Set `USE_MOCK_ASSISTANT=true` to fall back to `features/ai-chat/mock.ts` when
+working on the frontend without Ollama installed.
+
+To run the adapter, see `docs/HERMES-ADAPTER-INTEGRATION.md`; setup gaps and
+open integration questions are recorded in `docs/AI-INTEGRATION-NOTES.md`.
+
+The BA's AI behaviour contract will define the real guardrails and the category
+taxonomy (`CATEGORY` in `ChatPanel.tsx` is a placeholder until then).
 
 ---
 
