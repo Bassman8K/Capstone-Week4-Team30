@@ -7,6 +7,11 @@ response with Dev 2's local Hermes adapter.
 and gets a structured recommendation back. Broader error handling and
 refinement continue in Week 3.
 
+## Running it
+
+See [RUNNING-THE-AI-CHAT.md](./RUNNING-THE-AI-CHAT.md) — Option A for a
+no-install look at the screen, Option B for real replies.
+
 ## How it connects
 
 ```

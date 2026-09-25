@@ -117,8 +117,8 @@ the loading state carries real weight.
 Set `USE_MOCK_ASSISTANT=true` to fall back to `features/ai-chat/mock.ts` when
 working on the frontend without Ollama installed.
 
-To run the adapter, see `docs/HERMES-ADAPTER-INTEGRATION.md`; setup gaps and
-open integration questions are recorded in `docs/AI-INTEGRATION-NOTES.md`.
+To run it, see `docs/RUNNING-THE-AI-CHAT.md`; setup gaps and open integration
+questions are recorded in `docs/AI-INTEGRATION-NOTES.md`.
 
 The BA's AI behaviour contract will define the real guardrails and the category
 taxonomy (`CATEGORY` in `ChatPanel.tsx` is a placeholder until then).
