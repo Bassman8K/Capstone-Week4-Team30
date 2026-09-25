@@ -18,6 +18,12 @@ export interface SupportResponse {
   possibleContext: string
   suggestedActions: string[]
   followUpQuestion: string
+  /**
+   * Set by the agent when a situation needs more than everyday support —
+   * surfaced prominently rather than mixed into the suggestions. Null on the
+   * ordinary path.
+   */
+  safetyNotice?: string | null
 }
 
 export type ChatAuthor = 'user' | 'assistant'

@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { Menu, Send } from 'lucide-react'
 import { mockChild, mockChildContext } from '@/features/children/mock'
-import { requestSupport } from '../mock'
+import { requestSupport } from '../actions/requestSupport'
 import type { ChatStatus, ChatTurn } from '../types'
 import { AssistantReply } from './AssistantReply'
 import { ContextDrawer } from './ContextDrawer'
@@ -15,9 +15,9 @@ import { MessageBubble } from './MessageBubble'
  * Figma): the carer describes a situation, the assistant replies with context,
  * things to try, and a follow-up question.
  *
- * Responses come from the mock in `../mock` — the request/response contract is
- * already the real one, so connecting DEV 2's Hermes/Ollama service means
- * swapping that import for a fetch.
+ * Responses come from Dev 2's local Hermes adapter via the requestSupport
+ * Server Action. A local 3B model takes a few seconds to answer, so the
+ * loading state carries real weight here.
  */
 
 let turnCounter = 0
@@ -33,6 +33,7 @@ export function ChatPanel() {
   const [turns, setTurns] = useState<ChatTurn[]>([])
   const [input, setInput] = useState('')
   const [status, setStatus] = useState<ChatStatus>('idle')
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
 
   const isSending = status === 'sending'
@@ -44,21 +45,26 @@ export function ChatPanel() {
     setTurns((current) => [...current, { id: nextId(), kind: 'user', body: trimmed }])
     setInput('')
     setStatus('sending')
+    setErrorMessage(null)
 
-    try {
-      const response = await requestSupport({
-        childName: mockChild.name,
-        age: mockChild.age,
-        category: CATEGORY,
-        currentSituation: trimmed,
-        knownTriggers: mockChild.knownTriggers,
-        previousStrategies: mockChild.previousStrategies,
-      })
-      setTurns((current) => [...current, { id: nextId(), kind: 'assistant-reply', response }])
-      setStatus('idle')
-    } catch {
+    const result = await requestSupport({
+      childName: mockChild.name,
+      age: mockChild.age,
+      category: CATEGORY,
+      currentSituation: trimmed,
+      knownTriggers: mockChild.knownTriggers,
+      previousStrategies: mockChild.previousStrategies,
+    })
+
+    const { data } = result
+    if (!result.success || !data) {
+      setErrorMessage(result.error ?? 'Something went wrong getting a suggestion.')
       setStatus('error')
+      return
     }
+
+    setTurns((current) => [...current, { id: nextId(), kind: 'assistant-reply', response: data }])
+    setStatus('idle')
   }
 
   const lastUserTurn = [...turns].reverse().find((turn) => turn.kind === 'user')
@@ -109,13 +115,13 @@ export function ChatPanel() {
 
           {isSending && (
             <p role="status" className="text-sm text-zinc-500">
-              Thinking…
+              Thinking… this can take a few seconds.
             </p>
           )}
 
           {status === 'error' && (
             <div role="alert" className="space-y-2 text-sm text-red-600">
-              <p>Something went wrong getting a suggestion.</p>
+              <p>{errorMessage ?? 'Something went wrong getting a suggestion.'}</p>
               <button
                 type="button"
                 onClick={() => lastUserTurn && send(lastUserTurn.body)}
