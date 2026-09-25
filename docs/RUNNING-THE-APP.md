@@ -30,8 +30,8 @@ locally to develop.
 
 - **Node.js 22 or newer** — [nodejs.org](https://nodejs.org). Check with `node -v`.
 - **pnpm 10 or newer** — `npm install -g pnpm`. Check with `pnpm -v`.
-- The team's **`.env` file** — ask Jonathan. It is not in the repo (it's
-  gitignored) and the app will not start without it.
+- **One secret value** — `FIREBASE_SERVICE_ACCOUNT_KEY_BASE64`. Ask Jonathan.
+  Everything else is already in the repo.
 
 Never `npm install` or `yarn` in this repo — it's a pnpm workspace.
 
@@ -41,10 +41,21 @@ Never `npm install` or `yarn` in this repo — it's a pnpm workspace.
 git clone https://github.com/Bassman8K/Capstone-Week4-Team30.git
 cd Capstone-Week4-Team30
 pnpm install
+cp .env.example .env
 ```
 
-Then put the `.env` file you were given in the **root** of the project — next to
-`package.json`, not inside `frontend/`.
+Open `.env` and paste the value Jonathan gives you into the one blank line:
+
+```
+FIREBASE_SERVICE_ACCOUNT_KEY_BASE64=
+```
+
+That's the only thing you need to fill in — the rest is already there. Leave
+`STITCH_API_KEY` blank unless you use Stitch in Claude Code; the app doesn't
+need it.
+
+Keep `.env` in the project **root**, next to `package.json`, not inside
+`frontend/`. It's gitignored, so you won't accidentally commit it.
 
 You never edit `frontend/.env.local` or `backend/.env` — those are generated
 from the root `.env` automatically every time you run the app.
@@ -74,21 +85,26 @@ running as well — see [RUNNING-THE-AI-CHAT.md](./RUNNING-THE-AI-CHAT.md).
 
 | What you see | Fix |
 |---|---|
-| `Warning: NEXT_PUBLIC_FIREBASE_* are empty` | The root `.env` is missing or in the wrong folder |
+| `Warning: NEXT_PUBLIC_FIREBASE_* are empty` | You skipped `cp .env.example .env`, or `.env` is in the wrong folder |
+| Login fails or spins forever | `FIREBASE_SERVICE_ACCOUNT_KEY_BASE64` is blank — that's the one value you need from Jonathan |
 | `command not found: pnpm` | `npm install -g pnpm` |
 | Errors about Node version | You're below Node 22 — upgrade |
 | Port 3000 already in use | Something else is running; close it or restart |
 | Weird build errors after pulling | `rm -rf frontend/.next` then try again |
 | Login page loops or won't accept you | Your account may need email verification — check your inbox |
 
-## About the `.env`
+## About the service account key
 
-It contains the team's Firebase keys, including a service account key that has
-full admin access to our database. Treat it like a password:
+`FIREBASE_SERVICE_ACCOUNT_KEY_BASE64` has full admin access to our Firestore
+database and bypasses every security rule. Treat it like a password:
 
 - Get it from Jonathan directly, not from a group channel.
 - Don't commit it, paste it into a chat, or put it in a doc.
 - If it ever leaks, tell the team so the key can be rotated.
+
+The other values in `.env.example` are safe to have in the repo — they're
+already served inside the deployed app's JavaScript, and Firebase treats the
+web config as public by design.
 
 Deployment is handled through Vercel — you don't need to set that up to work
 locally. See [DEPLOY-TO-VERCEL.md](./DEPLOY-TO-VERCEL.md).
