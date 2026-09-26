@@ -25,8 +25,32 @@ You still need the repo, Node 22+ and pnpm — this skips Ollama, not everything
 ```bash
 git pull
 pnpm install
+```
+
+Then start it with the mock flag set. **The syntax differs per shell** — the
+`VAR=value command` form is macOS/Linux only and will fail on Windows.
+
+**macOS / Linux (bash, zsh)**
+```bash
 USE_MOCK_ASSISTANT=true pnpm run dev
 ```
+
+**Windows — PowerShell**
+```powershell
+$env:USE_MOCK_ASSISTANT="true"; pnpm run dev
+```
+
+**Windows — Command Prompt (cmd.exe)**
+```cmd
+set USE_MOCK_ASSISTANT=true && pnpm run dev
+```
+
+> If PowerShell says *"USE_MOCK_ASSISTANT=true is not recognized as the name of
+> a cmdlet"*, you used the macOS form — use the PowerShell one above.
+
+Note the PowerShell version sets the variable for the whole terminal session,
+so it stays on until you close that window or run
+`Remove-Item Env:USE_MOCK_ASSISTANT`.
 
 Open <http://localhost:3000/ai-chat>, sign in, and type a situation. The reply
 appears after a short delay.
