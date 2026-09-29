@@ -4,6 +4,10 @@
  * `backend/src/lib/ollama.ts` — if you change one, change the other. (Worth
  * moving to a shared workspace package once a second consumer appears.)
  */
+export interface SessionMessage {
+  role: 'user' | 'assistant'
+  content: string
+}
 export interface SupportRequest {
   childName: string
   age: number
@@ -12,6 +16,7 @@ export interface SupportRequest {
   recentContext?: string
   knownTriggers?: string[]
   previousStrategies?: string[]
+  sessionContext?: SessionMessage[]
 }
 
 export interface SupportResponse {

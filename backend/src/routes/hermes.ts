@@ -6,6 +6,11 @@ import type { HermesRequest } from '../lib/ollama'
 
 const router: ExpressRouter = Router()
 
+const sessionMessageSchema = z.object({
+  role: z.enum(['user', 'assistant']),
+  content: z.string().trim().min(1),
+})
+
 const supportRequestSchema = z.object({
   childName: z.string().trim().min(1),
   age: z.number().nonnegative(),
@@ -14,6 +19,7 @@ const supportRequestSchema = z.object({
   recentContext: z.string().trim().min(1).optional(),
   knownTriggers: z.array(z.string().trim().min(1)).optional(),
   previousStrategies: z.array(z.string().trim().min(1)).optional(),
+  sessionContext: z.array(sessionMessageSchema).max(4).optional(),
 })
 
 /**
@@ -35,9 +41,12 @@ router.post('/', async (req, res, next) => {
     )
   }
 
+  const { sessionContext, ...context } = parsed.data
+
   const hermesRequest: HermesRequest = {
-    context: parsed.data,
-    userMessage: parsed.data.currentSituation,
+    context,
+    userMessage: context.currentSituation,
+    sessionContext,
   }
 
   try {

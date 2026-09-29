@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { Menu, Send } from 'lucide-react'
 import { mockChild, mockChildContext } from '@/features/children/mock'
 import { requestSupport } from '../actions/requestSupport'
-import type { ChatStatus, ChatTurn } from '../types'
+import type { ChatStatus, ChatTurn, SessionMessage } from '../types'
 import { AssistantReply } from './AssistantReply'
 import { ContextDrawer } from './ContextDrawer'
 import { FeedbackWidget } from './FeedbackWidget'
@@ -47,6 +47,31 @@ export function ChatPanel() {
     setStatus('sending')
     setErrorMessage(null)
 
+    const sessionContext: SessionMessage[] = turns.slice(-4).map((turn) => {
+      if (turn.kind === 'user') {
+        return {
+          role: 'user',
+          content: turn.body,
+        }
+      }
+
+      if (turn.kind === 'assistant-text') {
+        return {
+          role: 'assistant',
+          content: turn.body,
+        }
+      }
+
+      return {
+        role: 'assistant',
+        content: [
+          turn.response.possibleContext,
+          ...turn.response.suggestedActions,
+          turn.response.followUpQuestion,
+        ].join(' '),
+      }
+    })
+
     const result = await requestSupport({
       childName: mockChild.name,
       age: mockChild.age,
@@ -54,16 +79,26 @@ export function ChatPanel() {
       currentSituation: trimmed,
       knownTriggers: mockChild.knownTriggers,
       previousStrategies: mockChild.previousStrategies,
+      sessionContext,
     })
 
     const { data } = result
+
     if (!result.success || !data) {
       setErrorMessage(result.error ?? 'Something went wrong getting a suggestion.')
       setStatus('error')
       return
     }
 
-    setTurns((current) => [...current, { id: nextId(), kind: 'assistant-reply', response: data }])
+    setTurns((current) => [
+      ...current,
+      {
+        id: nextId(),
+        kind: 'assistant-reply',
+        response: data,
+      },
+    ])
+
     setStatus('idle')
   }
 
@@ -74,6 +109,7 @@ export function ChatPanel() {
       <div className="flex min-h-[28rem] flex-col overflow-hidden rounded-lg bg-white ring-1 ring-zinc-200">
         <div className="flex items-center justify-between bg-slate-800 px-4 py-2 text-white">
           <span className="text-sm font-medium">Assistant</span>
+
           <button
             type="button"
             onClick={() => setDrawerOpen((open) => !open)}
@@ -94,7 +130,9 @@ export function ChatPanel() {
 
           {turns.map((turn) => (
             <div key={turn.id}>
-              {turn.kind === 'user' && <MessageBubble author="user">{turn.body}</MessageBubble>}
+              {turn.kind === 'user' && (
+                <MessageBubble author="user">{turn.body}</MessageBubble>
+              )}
 
               {turn.kind === 'assistant-text' && (
                 <MessageBubble author="assistant">{turn.body}</MessageBubble>
@@ -103,8 +141,12 @@ export function ChatPanel() {
               {turn.kind === 'assistant-reply' && (
                 <div className="space-y-2">
                   <MessageBubble author="assistant">
-                    <AssistantReply response={turn.response} onSelectAction={send} />
+                    <AssistantReply
+                      response={turn.response}
+                      onSelectAction={send}
+                    />
                   </MessageBubble>
+
                   <div className="max-w-[85%] rounded-lg bg-white p-3 ring-1 ring-zinc-200">
                     <FeedbackWidget />
                   </div>
@@ -121,7 +163,10 @@ export function ChatPanel() {
 
           {status === 'error' && (
             <div role="alert" className="space-y-2 text-sm text-red-600">
-              <p>{errorMessage ?? 'Something went wrong getting a suggestion.'}</p>
+              <p>
+                {errorMessage ?? 'Something went wrong getting a suggestion.'}
+              </p>
+
               <button
                 type="button"
                 onClick={() => lastUserTurn && send(lastUserTurn.body)}
@@ -148,6 +193,7 @@ export function ChatPanel() {
             disabled={isSending}
             className="focus:ring-brand-500 flex-1 rounded-full border border-zinc-300 px-4 py-2 text-sm focus:ring-2 focus:outline-none disabled:bg-zinc-50"
           />
+
           <button
             type="submit"
             disabled={isSending || !input.trim()}
@@ -159,7 +205,12 @@ export function ChatPanel() {
         </form>
       </div>
 
-      {drawerOpen && <ContextDrawer childName={mockChild.name} snapshot={mockChildContext} />}
+      {drawerOpen && (
+        <ContextDrawer
+          childName={mockChild.name}
+          snapshot={mockChildContext}
+        />
+      )}
     </div>
   )
 }
