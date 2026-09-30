@@ -162,7 +162,7 @@ describe('ChatPanel', () => {
     )
 
     expect(
-      screen.getByRole('button', { name: /try again/i })
+      screen.getByRole('button', { name: /retry/i })
     ).toBeInTheDocument()
   })
 
@@ -182,7 +182,7 @@ describe('ChatPanel', () => {
     })
 
     await user.click(
-      screen.getByRole('button', { name: /try again/i })
+      screen.getByRole('button', { name: /retry/i })
     )
 
     expect(
@@ -194,6 +194,67 @@ describe('ChatPanel', () => {
     ).toHaveBeenLastCalledWith(
       expect.objectContaining({
         currentSituation: 'He skipped lunch',
+      })
+    )
+  })
+
+  it('does not repeat the carer\'s message when retrying', async () => {
+    mockedRequestSupport.mockResolvedValue({
+      success: false,
+      error: 'Service unavailable.',
+    })
+
+    render(<ChatPanel />)
+
+    const user = await submit('He skipped lunch')
+
+    mockedRequestSupport.mockResolvedValue({
+      success: true,
+      data: reply,
+    })
+
+    await user.click(
+      screen.getByRole('button', { name: /retry/i })
+    )
+
+    await screen.findByText(/how a food feels/i)
+
+    // Week 2 UX testing found retry adding the prompt to the conversation a
+    // second time — it should still appear exactly once.
+    expect(
+      screen.getAllByText('He skipped lunch')
+    ).toHaveLength(1)
+  })
+
+  it('does not resend the retried prompt as session context', async () => {
+    mockedRequestSupport.mockResolvedValue({
+      success: false,
+      error: 'Service unavailable.',
+    })
+
+    render(<ChatPanel />)
+
+    const user = await submit('He skipped lunch')
+
+    mockedRequestSupport.mockResolvedValue({
+      success: true,
+      data: reply,
+    })
+
+    await user.click(
+      screen.getByRole('button', { name: /retry/i })
+    )
+
+    await screen.findByText(/how a food feels/i)
+
+    // The prompt travels in currentSituation; repeating it in the history
+    // would hand Hermes the same message twice.
+    expect(
+      mockedRequestSupport
+    ).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        currentSituation: 'He skipped lunch',
+        sessionContext: [],
       })
     )
   })
@@ -264,6 +325,30 @@ describe('ChatPanel', () => {
 
     expect(
       screen.getByText(/sleep: 6.5 hours/i)
+    ).toBeInTheDocument()
+  })
+
+  it('lays the context panel over the chat on small screens', async () => {
+    const user = userEvent.setup()
+
+    render(<ChatPanel />)
+
+    await user.click(
+      screen.getByRole('button', {
+        name: /show ben's info/i,
+      })
+    )
+
+    // On a phone the panel used to drop into the next grid row, pushing it
+    // below the conversation. It should overlay instead, and become a side
+    // column again from lg up.
+    const panel = screen.getByText(/ben's info/i).closest('aside')
+
+    expect(panel).toHaveClass('absolute', 'right-0', 'lg:static')
+
+    // A scrim gives a way back out on touch.
+    expect(
+      screen.getByRole('button', { name: /close ben's info/i })
     ).toBeInTheDocument()
   })
 })

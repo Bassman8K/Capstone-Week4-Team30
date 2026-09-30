@@ -8,9 +8,12 @@ import type { ChildContextSnapshot } from '@/features/children/types'
 export function ContextDrawer({
   childName,
   snapshot,
+  className = '',
 }: {
   childName: string
   snapshot: ChildContextSnapshot
+  /** Positioning from the parent — it decides overlay vs. side column. */
+  className?: string
 }) {
   const rows: Array<[string, string]> = [
     ['Sleep', snapshot.sleepHours === null ? 'Not logged' : `${snapshot.sleepHours} hours`],
@@ -21,7 +24,7 @@ export function ContextDrawer({
   ]
 
   return (
-    <aside className="rounded-lg bg-slate-700 p-4 text-white">
+    <aside className={`rounded-lg bg-slate-700 p-4 text-white ${className}`}>
       <h2 className="text-sm font-semibold">{childName}&apos;s Info</h2>
       <ul className="mt-3 space-y-2 text-sm">
         {rows.map(([label, value]) => (
