@@ -29,6 +29,42 @@ const nextId = () => `turn-${(turnCounter += 1)}`
  */
 const CATEGORY = 'general-support'
 
+/** How much of the conversation Hermes keeps for continuity (its cap is 4). */
+const SESSION_CONTEXT_TURNS = 4
+
+function toSessionMessage(turn: ChatTurn): SessionMessage {
+  if (turn.kind === 'user') {
+    return { role: 'user', content: turn.body }
+  }
+
+  if (turn.kind === 'assistant-text') {
+    return { role: 'assistant', content: turn.body }
+  }
+
+  return {
+    role: 'assistant',
+    content: [
+      turn.response.possibleContext,
+      ...turn.response.suggestedActions,
+      turn.response.followUpQuestion,
+    ].join(' '),
+  }
+}
+
+/**
+ * The most recent carer message together with the conversation that came
+ * before it — what a retry needs to re-ask without repeating itself.
+ */
+function findLastPrompt(turns: ChatTurn[]): { body: string; history: ChatTurn[] } | null {
+  for (let index = turns.length - 1; index >= 0; index -= 1) {
+    const turn = turns[index]
+    if (turn?.kind === 'user') {
+      return { body: turn.body, history: turns.slice(0, index) }
+    }
+  }
+  return null
+}
+
 export function ChatPanel() {
   const [turns, setTurns] = useState<ChatTurn[]>([])
   const [input, setInput] = useState('')
@@ -38,48 +74,23 @@ export function ChatPanel() {
 
   const isSending = status === 'sending'
 
-  async function send(situation: string) {
-    const trimmed = situation.trim()
-    if (!trimmed || isSending) return
-
-    setTurns((current) => [...current, { id: nextId(), kind: 'user', body: trimmed }])
-    setInput('')
+  /**
+   * Asks the assistant about `situation`. `history` is the conversation as it
+   * stood *before* that prompt — the prompt itself travels in
+   * `currentSituation`, so repeating it in the history would send it twice.
+   */
+  async function ask(situation: string, history: ChatTurn[]) {
     setStatus('sending')
     setErrorMessage(null)
-
-    const sessionContext: SessionMessage[] = turns.slice(-4).map((turn) => {
-      if (turn.kind === 'user') {
-        return {
-          role: 'user',
-          content: turn.body,
-        }
-      }
-
-      if (turn.kind === 'assistant-text') {
-        return {
-          role: 'assistant',
-          content: turn.body,
-        }
-      }
-
-      return {
-        role: 'assistant',
-        content: [
-          turn.response.possibleContext,
-          ...turn.response.suggestedActions,
-          turn.response.followUpQuestion,
-        ].join(' '),
-      }
-    })
 
     const result = await requestSupport({
       childName: mockChild.name,
       age: mockChild.age,
       category: CATEGORY,
-      currentSituation: trimmed,
+      currentSituation: situation,
       knownTriggers: mockChild.knownTriggers,
       previousStrategies: mockChild.previousStrategies,
-      sessionContext,
+      sessionContext: history.slice(-SESSION_CONTEXT_TURNS).map(toSessionMessage),
     })
 
     const { data } = result
@@ -90,22 +101,40 @@ export function ChatPanel() {
       return
     }
 
-    setTurns((current) => [
-      ...current,
-      {
-        id: nextId(),
-        kind: 'assistant-reply',
-        response: data,
-      },
-    ])
-
+    setTurns((current) => [...current, { id: nextId(), kind: 'assistant-reply', response: data }])
     setStatus('idle')
   }
 
-  const lastUserTurn = [...turns].reverse().find((turn) => turn.kind === 'user')
+  /** A new prompt from the carer: show their message, then ask. */
+  async function send(situation: string) {
+    const trimmed = situation.trim()
+    if (!trimmed || isSending) return
+
+    const history = turns
+    setTurns((current) => [...current, { id: nextId(), kind: 'user', body: trimmed }])
+    setInput('')
+
+    await ask(trimmed, history)
+  }
+
+  /**
+   * Re-asks the last prompt after a failure. The carer's message is already on
+   * screen, so this deliberately doesn't add it again — Week 2 UX testing found
+   * retrying duplicating their prompt in the conversation.
+   */
+  async function retry() {
+    if (isSending) return
+
+    const prompt = findLastPrompt(turns)
+    if (!prompt) return
+
+    await ask(prompt.body, prompt.history)
+  }
+
+  const canRetry = findLastPrompt(turns) !== null
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[2fr_1fr]">
+    <div className="relative grid gap-4 lg:grid-cols-[2fr_1fr]">
       <div className="flex min-h-[28rem] flex-col overflow-hidden rounded-lg bg-white ring-1 ring-zinc-200">
         <div className="flex items-center justify-between bg-slate-800 px-4 py-2 text-white">
           <span className="text-sm font-medium">Assistant</span>
@@ -130,9 +159,7 @@ export function ChatPanel() {
 
           {turns.map((turn) => (
             <div key={turn.id}>
-              {turn.kind === 'user' && (
-                <MessageBubble author="user">{turn.body}</MessageBubble>
-              )}
+              {turn.kind === 'user' && <MessageBubble author="user">{turn.body}</MessageBubble>}
 
               {turn.kind === 'assistant-text' && (
                 <MessageBubble author="assistant">{turn.body}</MessageBubble>
@@ -141,10 +168,7 @@ export function ChatPanel() {
               {turn.kind === 'assistant-reply' && (
                 <div className="space-y-2">
                   <MessageBubble author="assistant">
-                    <AssistantReply
-                      response={turn.response}
-                      onSelectAction={send}
-                    />
+                    <AssistantReply response={turn.response} onSelectAction={send} />
                   </MessageBubble>
 
                   <div className="max-w-[85%] rounded-lg bg-white p-3 ring-1 ring-zinc-200">
@@ -155,25 +179,40 @@ export function ChatPanel() {
             </div>
           ))}
 
+          {/*
+            A typing indicator in the assistant's own bubble, per the "Loading
+            state - Main Page" frame, rather than a line of grey text. The
+            wait is a real 5-8 seconds on a local 3B model, so the visible
+            text stays available to screen readers.
+          */}
           {isSending && (
-            <p role="status" className="text-sm text-zinc-500">
-              Thinking… this can take a few seconds.
-            </p>
+            <div role="status">
+              <MessageBubble author="assistant">
+                <span className="flex items-center gap-1 py-1" aria-hidden="true">
+                  <span className="size-1.5 animate-bounce rounded-full bg-zinc-400 [animation-delay:-0.3s]" />
+                  <span className="size-1.5 animate-bounce rounded-full bg-zinc-400 [animation-delay:-0.15s]" />
+                  <span className="size-1.5 animate-bounce rounded-full bg-zinc-400" />
+                </span>
+                <span className="sr-only">Thinking… this can take a few seconds.</span>
+              </MessageBubble>
+            </div>
           )}
 
           {status === 'error' && (
-            <div role="alert" className="space-y-2 text-sm text-red-600">
-              <p>
+            <div role="alert" className="space-y-2">
+              <p className="text-sm text-red-600">
                 {errorMessage ?? 'Something went wrong getting a suggestion.'}
               </p>
 
-              <button
-                type="button"
-                onClick={() => lastUserTurn && send(lastUserTurn.body)}
-                className="rounded bg-red-100 px-2.5 py-1 text-xs font-medium text-red-800 hover:bg-red-200"
-              >
-                Try again
-              </button>
+              {canRetry && (
+                <button
+                  type="button"
+                  onClick={() => void retry()}
+                  className="rounded-full bg-red-100 px-4 py-1.5 text-sm font-medium text-red-800 hover:bg-red-200"
+                >
+                  Retry
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -206,10 +245,26 @@ export function ChatPanel() {
       </div>
 
       {drawerOpen && (
-        <ContextDrawer
-          childName={mockChild.name}
-          snapshot={mockChildContext}
-        />
+        <>
+          {/*
+            Below lg the panel sits *over* the conversation, as in the "updated
+            context sidebar" frame. It used to drop into the next grid row,
+            which on a phone pushed it below the chat — the behaviour UX
+            testing flagged. The scrim gives a way back out.
+          */}
+          <button
+            type="button"
+            onClick={() => setDrawerOpen(false)}
+            aria-label={`Close ${mockChild.name}'s info`}
+            className="absolute inset-0 z-10 cursor-default bg-slate-900/40 lg:hidden"
+          />
+
+          <ContextDrawer
+            childName={mockChild.name}
+            snapshot={mockChildContext}
+            className="absolute inset-y-0 right-0 z-20 w-4/5 max-w-xs overflow-y-auto rounded-r-none lg:static lg:w-auto lg:max-w-none lg:rounded-r-lg"
+          />
+        </>
       )}
     </div>
   )

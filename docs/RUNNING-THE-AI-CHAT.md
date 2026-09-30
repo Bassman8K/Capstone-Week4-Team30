@@ -5,6 +5,9 @@ It is not hosted anywhere, so the deployed site
 (<https://frontend-bassman8ks-projects.vercel.app>) can't reach it — that page
 shows *"Couldn't reach the assistant"* there.
 
+Demonstrating it to someone? [DEMO-BUILD.md](./DEMO-BUILD.md) has a rehearsed
+sequence and a fallback.
+
 If you haven't run the app at all before, start with
 [RUNNING-THE-APP.md](./RUNNING-THE-APP.md) — you need that working first.
 
