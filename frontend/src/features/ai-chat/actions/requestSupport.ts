@@ -54,7 +54,7 @@ const requestSchema = z.object({
 /** Mirrors what the adapter returns (backend/src/lib/hermesClient.ts). */
 const responseSchema = z.object({
   possibleContext: z.string().trim().min(1),
-  suggestedActions: z.array(z.string().trim().min(1)).min(1),
+  suggestedActions: z.array(z.string().trim().min(1)).max(3),
   followUpQuestion: z.string().trim().min(1),
   safetyNotice: z.string().nullable().optional(),
 })
