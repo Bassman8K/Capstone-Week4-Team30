@@ -58,7 +58,8 @@ const responseSchema = z.object({
   // Empty on purpose when Hermes needs more detail first: it asks the
   // followUpQuestion instead of guessing. Requiring at least one action
   // rejected those replies and showed "Couldn't reach the assistant".
-  suggestedActions: z.array(z.string().trim().min(1)),
+  // At most three, matching the adapter's own schema.
+  suggestedActions: z.array(z.string().trim().min(1)).max(3),
   followUpQuestion: z.string().trim().min(1),
   safetyNotice: z.string().nullable().optional(),
 })

@@ -65,15 +65,12 @@ const hermesResponseFormat = {
 
 function buildContextSummary(request: HermesRequest): string {
   const {
-    currentSituation,
     recentContext,
     knownTriggers,
     previousStrategies,
   } = request.context
 
-  const parts: string[] = [
-    currentSituation.trim(),
-  ]
+  const parts: string[] = []
 
   if (recentContext?.trim()) {
     parts.push(`Recent context: ${recentContext.trim()}`)
@@ -93,6 +90,10 @@ function buildContextSummary(request: HermesRequest): string {
     )
   }
 
+  if (parts.length === 0) {
+    return 'No additional context provided.'
+  }
+
   return parts.join(' ')
 }
 
@@ -100,14 +101,7 @@ function needsMoreContext(request: HermesRequest): boolean {
   const {
     currentSituation,
     recentContext,
-    knownTriggers,
-    previousStrategies,
   } = request.context
-
-  const hasSupportingContext =
-    Boolean(recentContext?.trim()) ||
-    Boolean(knownTriggers?.length) ||
-    Boolean(previousStrategies?.length)
 
   const normalizedSituation = currentSituation
     .trim()
@@ -127,7 +121,22 @@ function needsMoreContext(request: HermesRequest): boolean {
     normalizedSituation.includes(phrase),
   )
 
-  return !hasSupportingContext && isVague
+  const detailIndicators = [
+    ' because ',
+    ' after ',
+    ' when ',
+    ' since ',
+    ' during ',
+    ' before ',
+  ]
+
+  const hasImmediateDetail =
+    Boolean(recentContext?.trim()) ||
+    detailIndicators.some((indicator) =>
+      normalizedSituation.includes(indicator),
+    )
+
+  return isVague && !hasImmediateDetail
 }
 
 function isUrgentMedicalSituation(
@@ -199,13 +208,175 @@ function isDiagnosisRequest(
   return asksForDiagnosis && mentionsCondition
 }
 
+function isDietPlanningRequest(
+  request: HermesRequest,
+): boolean {
+  const text = [
+    request.context.currentSituation,
+    request.userMessage,
+  ]
+    .join(' ')
+    .toLowerCase()
+
+  const dietPhrases = [
+    'generate a diet',
+    'create a diet',
+    'make a diet',
+    'diet plan',
+    'meal plan',
+    'create a meal plan',
+    'generate a meal plan',
+    'what should my child eat',
+    'diet suitable for my child',
+    'diet that can be suitable',
+  ]
+
+  return dietPhrases.some((phrase) =>
+    text.includes(phrase),
+  )
+}
+
+function isNeutralObservation(
+  request: HermesRequest,
+): boolean {
+  const text = request.context.currentSituation
+    .trim()
+    .toLowerCase()
+
+  const requestIndicators = [
+    '?',
+    'what should',
+    'what can',
+    'what do',
+    'how should',
+    'how can',
+    'can you',
+    'could you',
+    'help me',
+    'please help',
+    'advice',
+    'suggest',
+    'recommend',
+    'generate',
+    'create',
+  ]
+
+  const concernIndicators = [
+    'upset',
+    'refus',
+    'overwhelm',
+    'distress',
+    'struggl',
+    'meltdown',
+    'crying',
+    'angry',
+    'anxious',
+    'scared',
+    'worried',
+    "won't",
+    'will not',
+    'cannot',
+    "can't",
+    'difficulty',
+    'trouble',
+    'pain',
+    'hurt',
+    'swelling',
+    'allergy',
+    'unsafe',
+    'problem',
+    'issue',
+  ]
+
+  const observationIndicators = [
+    ' ate ',
+    'ate ',
+    ' eating ',
+    'eating ',
+    ' drank ',
+    'drank ',
+    ' slept ',
+    'slept ',
+    ' played ',
+    'played ',
+    ' tried ',
+    'tried ',
+    'today',
+    'yesterday',
+  ]
+
+  const asksForHelp = requestIndicators.some(
+    (indicator) => text.includes(indicator),
+  )
+
+  const describesConcern = concernIndicators.some(
+    (indicator) => text.includes(indicator),
+  )
+
+  const looksLikeObservation = observationIndicators.some(
+    (indicator) => text.includes(indicator),
+  )
+
+  return (
+    looksLikeObservation &&
+    !asksForHelp &&
+    !describesConcern
+  )
+}
+
+function findConflictingChildName(
+  request: HermesRequest,
+): string | null {
+  const activeChildName =
+    request.context.childName.trim()
+
+  const text =
+    request.context.currentSituation.trim()
+
+  const ignoredWords = new Set([
+    'What',
+    'When',
+    'Where',
+    'Why',
+    'How',
+    'Who',
+    'Please',
+    'Today',
+    'Yesterday',
+    'Tomorrow',
+  ])
+
+  const childMentionPattern =
+    /\b([A-Z][A-Za-z'-]{1,30})\s+(?:is|was|has|had|does|did|refused|ate|eats|becomes|became|seems|started|starts)\b/g
+
+  for (const match of text.matchAll(childMentionPattern)) {
+    const mentionedName = match[1]
+
+    if (!mentionedName) {
+      continue
+    }
+
+    if (ignoredWords.has(mentionedName)) {
+      continue
+    }
+
+    if (
+      mentionedName.toLowerCase() !==
+      activeChildName.toLowerCase()
+    ) {
+      return mentionedName
+    }
+  }
+
+  return null
+}
+
 export async function askHermes(
   request: HermesRequest,
 ): Promise<HermesResponse> {
   const childName = request.context.childName
 
-  // Urgent medical situations are handled deterministically
-  // so the model cannot provide unsafe medication or treatment advice.
+  // Emergency cases take priority over all other checks.
   if (isUrgentMedicalSituation(request)) {
     return {
       possibleContext: buildContextSummary(request),
@@ -220,8 +391,22 @@ export async function askHermes(
     }
   }
 
-  // Diagnostic requests are handled deterministically
-  // so the model does not infer a condition from behaviours.
+  // Do not combine the active profile with another child's message.
+  const conflictingChildName =
+    findConflictingChildName(request)
+
+  if (conflictingChildName) {
+    return {
+      possibleContext:
+        `The active child profile is ${childName}, but the current message refers to ${conflictingChildName}.`,
+      suggestedActions: [],
+      followUpQuestion:
+        `Should I use ${childName}'s profile, or are you asking about ${conflictingChildName}?`,
+      safetyNotice: null,
+    }
+  }
+
+  // Prevent diagnostic conclusions.
   if (isDiagnosisRequest(request)) {
     return {
       possibleContext: buildContextSummary(request),
@@ -236,8 +421,31 @@ export async function askHermes(
     }
   }
 
-  // If the request is too vague and has no supporting context,
-  // ask for clarification before providing advice.
+  // Do not create a personalised diet without enough information.
+  if (isDietPlanningRequest(request)) {
+    return {
+      possibleContext: buildContextSummary(request),
+      suggestedActions: [],
+      followUpQuestion:
+        `What foods does ${childName} currently eat comfortably, and are there any allergies or dietary restrictions I should know about?`,
+      safetyNotice:
+        'I can help with practical mealtime support, but I cannot prescribe a personalised diet or replace advice from a qualified health or nutrition professional.',
+    }
+  }
+
+  // A neutral observation is not automatically a request for advice.
+  // Ask what the caregiver wants help with instead of inventing a problem.
+  if (isNeutralObservation(request)) {
+    return {
+      possibleContext: buildContextSummary(request),
+      suggestedActions: [],
+      followUpQuestion:
+        `What would you like help with about ${childName}'s situation—for example, food refusal, trying new foods, or meal planning?`,
+      safetyNotice: null,
+    }
+  }
+
+  // A vague situation needs immediate context before advice.
   if (needsMoreContext(request)) {
     return {
       possibleContext: buildContextSummary(request),
@@ -255,7 +463,6 @@ export async function askHermes(
     },
   ]
 
-  // Include short-term session history when available.
   if (request.sessionContext?.length) {
     messages.push(
       ...request.sessionContext.map((message) => ({
@@ -308,11 +515,16 @@ ${request.userMessage}
 
 Important:
 - CURRENT SITUATION and RECENT CONTEXT are separate facts.
+- The active child profile belongs to ${childName}.
+- Do not combine this profile with information about another child.
 - Do not change when or where an event happened.
 - PREVIOUS STRATEGIES have already been tried.
 - Do not present previous strategies as completely new.
 - Do not claim a previous strategy worked unless explicitly stated.
 - Do not ask for information already listed above.
+- Do not repeat or restate the caregiver's current question in possibleContext.
+- Do not infer distress, anxiety, refusal, sensory difficulty, or another problem unless the caregiver actually described it.
+- A neutral observation is not evidence that something is wrong.
 - If important context is missing and advice would require guessing, return no suggested actions.
 - For missing-context requests, return "suggestedActions": [].
 - Ask one clear follow-up question for the most useful missing detail.
@@ -338,17 +550,21 @@ Important:
   })
 
   if (!response.ok) {
-    throw new Error(`Ollama request failed: ${response.status}`)
+    throw new Error(
+      `Ollama request failed: ${response.status}`,
+    )
   }
 
-  const data = (await response.json()) as OllamaChatResponse
+  const data =
+    (await response.json()) as OllamaChatResponse
 
-  const parsedJson: unknown = JSON.parse(data.message.content)
-  const validated = hermesResponseSchema.parse(parsedJson)
+  const parsedJson: unknown =
+    JSON.parse(data.message.content)
+
+  const validated =
+    hermesResponseSchema.parse(parsedJson)
 
   return {
-    // Preserve exact application-supplied facts so the model
-    // cannot alter timing, location, triggers, or strategy history.
     possibleContext: buildContextSummary(request),
     suggestedActions: validated.suggestedActions,
     followUpQuestion: validated.followUpQuestion,
