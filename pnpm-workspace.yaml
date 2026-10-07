@@ -13,7 +13,7 @@ overrides:
   # version too. postcss 8.x is backward-compatible within the major.
   postcss: '^8.5.18'
   # next also bundles an old sharp (image optimization) — force the patched line.
-  sharp: '^0.35.4'
+  sharp: '^0.35.5'
   # js-yaml (GHSA-2883-xcg3-v3hh, high) — reaches us transitively through
   # eslint's config loader. Force the patched line.
   js-yaml: '^4.3.2'
@@ -27,6 +27,13 @@ overrides:
   'brace-expansion@1': '^1.1.20'
   'brace-expansion@2': '^2.1.6'
   'brace-expansion@5': '^5.0.11'
+  # October 2026 advisories - patched lines within the same major.
+  proxy-addr: '^2.0.8'
+  '@grpc/grpc-js': '^1.14.5'
+  '@fastify/busboy': '^3.2.1'
+  source-map-js: '^1.2.2'
+  # tinypool is dev-only via vitest; no 1.x fix exists, so use 2.x.
+  tinypool: '^2.1.2'
 
 allowBuilds:
   '@firebase/util': true
@@ -35,3 +42,9 @@ allowBuilds:
   protobufjs: true
   sharp: true
   unrs-resolver: true
+
+auditConfig:
+  ignoreGhsas:
+    # braces: no fixed release exists yet (3.0.3 is latest). Dev-only via
+    # eslint-config-next. Remove this once braces 3.0.4 ships.
+    - GHSA-vfj7-8cjw-p6xm
