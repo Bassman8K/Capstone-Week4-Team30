@@ -1,3 +1,4 @@
+import { childContextEntries } from '@/features/children/context'
 import type { ChildContextSnapshot } from '@/features/children/types'
 
 /**
@@ -15,13 +16,13 @@ export function ContextDrawer({
   /** Positioning from the parent — it decides overlay vs. side column. */
   className?: string
 }) {
-  const rows: Array<[string, string]> = [
-    ['Sleep', snapshot.sleepHours === null ? 'Not logged' : `${snapshot.sleepHours} hours`],
-    ['Breakfast', snapshot.breakfast ?? 'Not logged'],
-    ['Mood', snapshot.mood ?? 'Not logged'],
-    ['School', snapshot.schoolHours ?? 'Not logged'],
-    ['Appointment', snapshot.nextAppointment ?? 'None today'],
-  ]
+  // Same entries the AI request is built from — see childContextEntries.
+  const rows = childContextEntries(snapshot).map(
+    ([label, value]): [string, string] => [
+      label,
+      value ?? (label === 'Appointment' ? 'None today' : 'Not logged'),
+    ]
+  )
 
   return (
     <aside className={`rounded-lg bg-slate-700 p-4 text-white ${className}`}>

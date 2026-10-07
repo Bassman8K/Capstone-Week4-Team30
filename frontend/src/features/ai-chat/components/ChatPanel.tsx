@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { Menu, Send } from 'lucide-react'
+import { describeChildContext } from '@/features/children/context'
 import { mockChild, mockChildContext } from '@/features/children/mock'
 import { requestSupport } from '../actions/requestSupport'
 import type { ChatStatus, ChatTurn, SessionMessage } from '../types'
@@ -88,6 +89,8 @@ export function ChatPanel() {
       age: mockChild.age,
       category: CATEGORY,
       currentSituation: situation,
+      // What the carer can see in the info panel — previously never sent.
+      recentContext: describeChildContext(mockChildContext),
       knownTriggers: mockChild.knownTriggers,
       previousStrategies: mockChild.previousStrategies,
       sessionContext: history.slice(-SESSION_CONTEXT_TURNS).map(toSessionMessage),
