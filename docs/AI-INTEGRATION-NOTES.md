@@ -7,6 +7,14 @@ response with Dev 2's local Hermes adapter.
 and gets a structured recommendation back. Broader error handling and
 refinement continue in Week 3.
 
+## Sprint 3, Week 1 — request trace
+
+The request path was traced end to end against the BA's failing behaviour. The
+app was not sending the info-panel context, and was showing valid "need more
+detail" replies as a connection error; both are fixed. Adapter-side and
+environment findings are listed for Dev 2. Full write-up and the confirmed
+request format: [AI-REQUEST-TRACE.md](./AI-REQUEST-TRACE.md).
+
 ## Week 3 — stabilisation
 
 Fixed against the "Stabilize the Application and Prepare the Demo Build" card:

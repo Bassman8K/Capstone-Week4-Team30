@@ -72,6 +72,42 @@ describe('ChatPanel', () => {
     )
   })
 
+  it('sends the context shown in the info panel as recentContext', async () => {
+    render(<ChatPanel />)
+
+    await submit("Ben isn't eating his dinner")
+
+    // Sprint 3 tracing: the panel showed sleep, breakfast and mood, but none of
+    // it reached the AI, so answers ignored it.
+    expect(mockedRequestSupport).toHaveBeenCalledWith(
+      expect.objectContaining({
+        recentContext: expect.stringMatching(/Breakfast: Skipped/),
+      })
+    )
+  })
+
+  it('shows the follow-up question when the assistant suggests no actions yet', async () => {
+    mockedRequestSupport.mockResolvedValue({
+      success: true,
+      data: {
+        possibleContext: 'Ben is upset after school.',
+        suggestedActions: [],
+        followUpQuestion: 'What happened just before this started?',
+        safetyNotice: null,
+      },
+    })
+
+    render(<ChatPanel />)
+
+    await submit('Ben is upset after school')
+
+    expect(
+      await screen.findByText(/what happened just before this started/i)
+    ).toBeInTheDocument()
+    expect(screen.queryByText(/you can try/i)).not.toBeInTheDocument()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
   it('includes recent conversation turns as short-term session context', async () => {
     render(<ChatPanel />)
 

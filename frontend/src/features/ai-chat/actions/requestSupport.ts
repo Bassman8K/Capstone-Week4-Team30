@@ -27,10 +27,11 @@ const ADAPTER_URL =
 const USE_MOCK = process.env.USE_MOCK_ASSISTANT === 'true'
 
 /**
- * Hermes takes several seconds on a local 3B model — 5s was typical in
- * testing. Give it room, but don't leave the user hanging forever.
+ * Hermes usually answers in 3-8 seconds, but on a slower or mis-configured
+ * machine replies have taken 27-40s (HERMES-PROTOTYPE-FINDINGS, Sprint 3
+ * tracing). 30s cut those off as "took too long", so allow a minute.
  */
-const TIMEOUT_MS = 30_000
+const TIMEOUT_MS = 60_000
 
 const sessionMessageSchema = z.object({
   role: z.enum(['user', 'assistant']),
@@ -54,7 +55,10 @@ const requestSchema = z.object({
 /** Mirrors what the adapter returns (backend/src/lib/hermesClient.ts). */
 const responseSchema = z.object({
   possibleContext: z.string().trim().min(1),
-  suggestedActions: z.array(z.string().trim().min(1)).min(1),
+  // Empty on purpose when Hermes needs more detail first: it asks the
+  // followUpQuestion instead of guessing. Requiring at least one action
+  // rejected those replies and showed "Couldn't reach the assistant".
+  suggestedActions: z.array(z.string().trim().min(1)),
   followUpQuestion: z.string().trim().min(1),
   safetyNotice: z.string().nullable().optional(),
 })
@@ -121,6 +125,15 @@ export async function requestSupport(
     }
   } catch (error) {
     console.error('[ai-chat] assistant request failed', error)
+
+    // Reached the adapter, but the reply wasn't the shape we expect — not a
+    // connection problem, so don't tell the carer the service is down.
+    if (error instanceof z.ZodError) {
+      return {
+        success: false,
+        error: "The assistant's reply couldn't be read. Please try again.",
+      }
+    }
 
     const timedOut =
       error instanceof Error && error.name === 'TimeoutError'
