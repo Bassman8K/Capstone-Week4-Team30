@@ -16,9 +16,15 @@ import type { SupportRequest, SupportResponse } from '../types'
  * to ADAPTER_URL only.
  */
 
-/** Dev 2's adapter default — see docs/HERMES-ADAPTER-INTEGRATION.md. */
+/**
+ * Dev 2's adapter default — see docs/HERMES-ADAPTER-INTEGRATION.md.
+ *
+ * `||`, not `??`: scripts/sync-env.js writes `HERMES_ADAPTER_URL=` (empty)
+ * when the root .env doesn't set it, and an empty string isn't nullish — so
+ * `??` kept "" and every request failed with "Invalid URL".
+ */
 const ADAPTER_URL =
-  process.env.HERMES_ADAPTER_URL ?? 'http://localhost:8787/api/hermes'
+  process.env.HERMES_ADAPTER_URL?.trim() || 'http://localhost:8787/api/hermes'
 
 /**
  * Escape hatch for anyone working on the frontend without Ollama installed

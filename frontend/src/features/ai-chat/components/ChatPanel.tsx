@@ -151,7 +151,11 @@ export function ChatPanel() {
 
   return (
     <div className="relative grid gap-4 lg:grid-cols-[2fr_1fr]">
-      <div className="flex min-h-[28rem] flex-col overflow-hidden rounded-lg bg-white ring-1 ring-zinc-200">
+      {/*
+        Fixed height (Mei's Sprint 3 priority #1): the conversation scrolls
+        inside the box rather than pushing the page and input down as it grows.
+      */}
+      <div className="flex h-[32rem] flex-col overflow-hidden rounded-lg bg-white ring-1 ring-zinc-200">
         <div className="flex items-center justify-between bg-slate-800 px-4 py-2 text-white">
           <span className="text-sm font-medium">Assistant</span>
 
@@ -166,7 +170,7 @@ export function ChatPanel() {
           </button>
         </div>
 
-        <div className="flex-1 space-y-4 overflow-y-auto bg-zinc-50 p-4">
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto bg-zinc-50 p-4">
           {turns.length === 0 && (
             <p className="text-sm text-zinc-400">
               Describe what&apos;s happening and the assistant will suggest things to try.
@@ -278,7 +282,7 @@ export function ChatPanel() {
           <ContextDrawer
             childName={mockChild.name}
             snapshot={mockChildContext}
-            className="absolute inset-y-0 right-0 z-20 w-4/5 max-w-xs overflow-y-auto rounded-r-none lg:static lg:w-auto lg:max-w-none lg:rounded-r-lg"
+            className="absolute inset-y-0 right-0 z-20 w-4/5 max-w-xs rounded-r-none lg:static lg:h-[32rem] lg:w-auto lg:max-w-none lg:rounded-r-lg"
           />
         </>
       )}
