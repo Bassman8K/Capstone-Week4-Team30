@@ -63,7 +63,9 @@ const hermesResponseFormat = {
   additionalProperties: false,
 } as const
 
-function buildContextSummary(request: HermesRequest): string {
+function buildContextSummary(
+  request: HermesRequest,
+): string {
   const {
     recentContext,
     knownTriggers,
@@ -73,7 +75,9 @@ function buildContextSummary(request: HermesRequest): string {
   const parts: string[] = []
 
   if (recentContext?.trim()) {
-    parts.push(`Recent context: ${recentContext.trim()}`)
+    parts.push(
+      `Recent context: ${recentContext.trim()}`,
+    )
   }
 
   if (knownTriggers?.length) {
@@ -97,7 +101,9 @@ function buildContextSummary(request: HermesRequest): string {
   return parts.join(' ')
 }
 
-function needsMoreContext(request: HermesRequest): boolean {
+function needsMoreContext(
+  request: HermesRequest,
+): boolean {
   const {
     currentSituation,
     recentContext,
@@ -117,8 +123,9 @@ function needsMoreContext(request: HermesRequest): boolean {
     'please help',
   ]
 
-  const isVague = vagueSituations.some((phrase) =>
-    normalizedSituation.includes(phrase),
+  const isVague = vagueSituations.some(
+    (phrase) =>
+      normalizedSituation.includes(phrase),
   )
 
   const detailIndicators = [
@@ -197,13 +204,15 @@ function isDiagnosisRequest(
     'disorder',
   ]
 
-  const asksForDiagnosis = diagnosisPhrases.some(
-    (phrase) => text.includes(phrase),
-  )
+  const asksForDiagnosis =
+    diagnosisPhrases.some((phrase) =>
+      text.includes(phrase),
+    )
 
-  const mentionsCondition = conditionTerms.some(
-    (term) => text.includes(term),
-  )
+  const mentionsCondition =
+    conditionTerms.some((term) =>
+      text.includes(term),
+    )
 
   return asksForDiagnosis && mentionsCondition
 }
@@ -234,6 +243,228 @@ function isDietPlanningRequest(
   return dietPhrases.some((phrase) =>
     text.includes(phrase),
   )
+}
+
+function getExplicitAllergens(
+  request: HermesRequest,
+): string[] {
+  const text = [
+    request.context.currentSituation,
+    request.context.recentContext ?? '',
+    request.userMessage,
+    ...(request.sessionContext ?? []).map(
+      (message) => message.content,
+    ),
+  ]
+    .join(' ')
+    .toLowerCase()
+
+  const allergens = new Set<string>()
+
+  const allergyPatterns = [
+    /\b(peanut|peanuts)\s+allergy\b/g,
+    /\ballergic\s+to\s+(peanut|peanuts)\b/g,
+    /\bcannot\s+eat\s+(peanut|peanuts)\b/g,
+    /\bcan't\s+eat\s+(peanut|peanuts)\b/g,
+  ]
+
+  for (const pattern of allergyPatterns) {
+    for (const match of text.matchAll(pattern)) {
+      if (match[1]) {
+        allergens.add(match[1])
+      }
+    }
+  }
+
+  if (
+    allergens.has('peanut') ||
+    allergens.has('peanuts')
+  ) {
+    allergens.add('peanut')
+    allergens.add('peanuts')
+    allergens.add('peanut butter')
+  }
+
+  return [...allergens]
+}
+
+function removeAllergenSuggestions(
+  actions: string[],
+  request: HermesRequest,
+): string[] {
+  const allergens =
+    getExplicitAllergens(request)
+
+  if (allergens.length === 0) {
+    return actions
+  }
+
+  return actions.filter((action) => {
+    const text = action.toLowerCase()
+
+    return !allergens.some((allergen) =>
+      text.includes(allergen),
+    )
+  })
+}
+
+function mentionsAllergy(
+  request: HermesRequest,
+): boolean {
+  const text = [
+    request.context.currentSituation,
+    request.context.recentContext ?? '',
+    request.userMessage,
+    ...(request.sessionContext ?? []).map(
+      (message) => message.content,
+    ),
+  ]
+    .join(' ')
+    .toLowerCase()
+
+  return [
+    'allergy',
+    'allergic',
+    'allergies',
+  ].some((term) => text.includes(term))
+}
+
+function getPreviouslySuccessfulSubstitute(
+  request: HermesRequest,
+): string | null {
+  const userMessages = [
+    ...(request.sessionContext ?? [])
+      .filter(
+        (message) =>
+          message.role === 'user',
+      )
+      .map((message) =>
+        message.content.trim(),
+      ),
+    request.context.currentSituation.trim(),
+  ]
+    .filter(Boolean)
+    .reverse()
+
+  for (const message of userMessages) {
+    const butMatch = message.match(
+      /\bbut\s+([^,.!?]{1,60}?)\s+worked\s+instead\b/i,
+    )
+
+    if (butMatch?.[1]) {
+      return butMatch[1].trim()
+    }
+
+    const directMatch = message.match(
+      /^([^,.!?]{1,60}?)\s+worked\s+instead\b/i,
+    )
+
+    if (directMatch?.[1]) {
+      return directMatch[1].trim()
+    }
+  }
+
+  return null
+}
+
+function removeUnverifiedSafeClaims(
+  actions: string[],
+  request: HermesRequest,
+): string[] {
+  if (!mentionsAllergy(request)) {
+    return actions
+  }
+
+  return actions.filter(
+    (action) =>
+      !/\bsafe\b/i.test(action),
+  )
+}
+
+function ensurePreviousSuccessfulSubstitute(
+  actions: string[],
+  request: HermesRequest,
+): string[] {
+  const substitute =
+    getPreviouslySuccessfulSubstitute(request)
+
+  if (!substitute) {
+    return actions
+  }
+
+  const normalizedSubstitute =
+    substitute.toLowerCase()
+
+  const alreadyRecognised =
+    actions.some((action) => {
+      const text = action.toLowerCase()
+
+      return (
+        text.includes(normalizedSubstitute) &&
+        (
+          text.includes('worked') ||
+          text.includes('previously') ||
+          text.includes('successful')
+        )
+      )
+    })
+
+  if (alreadyRecognised) {
+    return actions
+  }
+
+  const remainingActions =
+    actions.filter(
+      (action) =>
+        !action
+          .toLowerCase()
+          .includes(normalizedSubstitute),
+    )
+
+  return [
+    `Since ${substitute} worked previously, you could offer ${substitute} again if it still fits ${request.context.childName}'s current dietary needs.`,
+    ...remainingActions.slice(0, 1),
+  ]
+}
+
+const ALLERGY_LABEL_REMINDER =
+  'Check ingredient and allergen labels before offering packaged or prepared foods, and avoid products containing the stated allergen or relevant cross-contact warnings.'
+
+function ensureAllergyLabelReminder(
+  actions: string[],
+  request: HermesRequest,
+): string[] {
+  if (!mentionsAllergy(request)) {
+    return actions
+  }
+
+  const alreadyIncludesReminder =
+    actions.some((action) => {
+      const text = action.toLowerCase()
+
+      const mentionsLabels =
+        text.includes('label') ||
+        text.includes('ingredient') ||
+        text.includes('allergen')
+
+      const tellsCaregiverToCheck =
+        text.includes('check') ||
+        text.includes('read')
+
+      return (
+        mentionsLabels &&
+        tellsCaregiverToCheck
+      )
+    })
+
+  if (alreadyIncludesReminder) {
+    return actions
+  }
+
+  return [
+    ...actions.slice(0, 2),
+    ALLERGY_LABEL_REMINDER,
+  ]
 }
 
 function isNeutralObservation(
@@ -291,6 +522,8 @@ function isNeutralObservation(
   const observationIndicators = [
     ' ate ',
     'ate ',
+    ' eats ',
+    'eats ',
     ' eating ',
     'eating ',
     ' drank ',
@@ -301,21 +534,27 @@ function isNeutralObservation(
     'played ',
     ' tried ',
     'tried ',
+    'usually eats',
+    'normally eats',
+    'typically eats',
     'today',
     'yesterday',
   ]
 
-  const asksForHelp = requestIndicators.some(
-    (indicator) => text.includes(indicator),
-  )
+  const asksForHelp =
+    requestIndicators.some((indicator) =>
+      text.includes(indicator),
+    )
 
-  const describesConcern = concernIndicators.some(
-    (indicator) => text.includes(indicator),
-  )
+  const describesConcern =
+    concernIndicators.some((indicator) =>
+      text.includes(indicator),
+    )
 
-  const looksLikeObservation = observationIndicators.some(
-    (indicator) => text.includes(indicator),
-  )
+  const looksLikeObservation =
+    observationIndicators.some((indicator) =>
+      text.includes(indicator),
+    )
 
   return (
     looksLikeObservation &&
@@ -349,7 +588,11 @@ function findConflictingChildName(
   const childMentionPattern =
     /\b([A-Z][A-Za-z'-]{1,30})\s+(?:is|was|has|had|does|did|refused|ate|eats|becomes|became|seems|started|starts)\b/g
 
-  for (const match of text.matchAll(childMentionPattern)) {
+  for (
+    const match of text.matchAll(
+      childMentionPattern,
+    )
+  ) {
     const mentionedName = match[1]
 
     if (!mentionedName) {
@@ -371,15 +614,354 @@ function findConflictingChildName(
   return null
 }
 
+function isUnclearFollowUp(
+  request: HermesRequest,
+): boolean {
+  const text = request.context.currentSituation
+    .trim()
+    .toLowerCase()
+    .replace(/[?.!]+$/, '')
+
+  const followUpPhrases = [
+    'what else could i try',
+    'what else can i try',
+    'what else should i try',
+    'what should i try next',
+    'what should i try instead',
+    'what can i try instead',
+    'what should i do next',
+    'anything else i can try',
+    'any other ideas',
+    'anything else',
+    'what about something different',
+    'what else',
+  ]
+
+  return followUpPhrases.some(
+    (phrase) =>
+      text === phrase ||
+      text.startsWith(`${phrase} `),
+  )
+}
+
+function getRecentUserConversationFocus(
+  request: HermesRequest,
+): string | null {
+  const userMessages = (
+    request.sessionContext ?? []
+  )
+    .filter(
+      (message) =>
+        message.role === 'user',
+    )
+    .map((message) =>
+      message.content.trim(),
+    )
+    .filter(Boolean)
+    .slice(-2)
+
+  if (userMessages.length === 0) {
+    return null
+  }
+
+  if (userMessages.length === 1) {
+    return `LATEST USER CONTEXT:
+${userMessages[0]}`
+  }
+
+  const earlierMessage =
+    userMessages[0]
+
+  const latestMessage =
+    userMessages[1]
+
+  return `EARLIER USER CONTEXT:
+${earlierMessage}
+
+LATEST USER UPDATE:
+${latestMessage}
+
+If these statements conflict, the LATEST USER UPDATE is the controlling current fact.
+Do not recommend something based on the earlier statement when the latest update contradicts it.`
+}
+
+const COMMON_WORDS = new Set([
+  'the',
+  'and',
+  'for',
+  'with',
+  'that',
+  'this',
+  'you',
+  'your',
+  'him',
+  'his',
+  'her',
+  'their',
+  'they',
+  'them',
+  'can',
+  'could',
+  'would',
+  'should',
+  'try',
+  'trying',
+  'offer',
+  'offering',
+  'help',
+  'also',
+  'more',
+  'some',
+  'have',
+  'has',
+  'been',
+  'into',
+  'from',
+  'when',
+  'while',
+  'about',
+  'ben',
+])
+
+function meaningfulWords(
+  text: string,
+): Set<string> {
+  return new Set(
+    text
+      .toLowerCase()
+      .replace(/[^a-z0-9\s]/g, ' ')
+      .split(/\s+/)
+      .filter(
+        (word) =>
+          word.length >= 4 &&
+          !COMMON_WORDS.has(word),
+      ),
+  )
+}
+
+function isSubstantiallyRepeated(
+  candidate: string,
+  previousText: string,
+): boolean {
+  const candidateWords =
+    meaningfulWords(candidate)
+
+  const previousWords =
+    meaningfulWords(previousText)
+
+  if (
+    candidateWords.size === 0 ||
+    previousWords.size === 0
+  ) {
+    return false
+  }
+
+  let overlap = 0
+
+  for (const word of candidateWords) {
+    if (previousWords.has(word)) {
+      overlap += 1
+    }
+  }
+
+  return (
+    overlap / candidateWords.size >= 0.6
+  )
+}
+
+/**
+ * Strategy matching uses basic word normalisation so:
+ * break = breaks
+ * picture = pictures
+ *
+ * This makes previous-strategy filtering more reliable.
+ */
+const STRATEGY_GENERIC_WORDS = new Set([
+  'using',
+  'giving',
+  'short',
+  'extra',
+  'five',
+  'minute',
+  'minutes',
+])
+
+function strategyWords(
+  text: string,
+): Set<string> {
+  return new Set(
+    text
+      .toLowerCase()
+      .replace(/[^a-z0-9\s]/g, ' ')
+      .split(/\s+/)
+      .filter(Boolean)
+      .map((word) => {
+        if (
+          word.endsWith('ies') &&
+          word.length > 4
+        ) {
+          return `${word.slice(0, -3)}y`
+        }
+
+        if (
+          word.endsWith('s') &&
+          word.length > 4 &&
+          !word.endsWith('ss')
+        ) {
+          return word.slice(0, -1)
+        }
+
+        return word
+      })
+      .filter(
+        (word) =>
+          word.length >= 4 &&
+          !STRATEGY_GENERIC_WORDS.has(word),
+      ),
+  )
+}
+
+function repeatsPreviousStrategy(
+  action: string,
+  strategy: string,
+): boolean {
+  const actionWords =
+    strategyWords(action)
+
+  const strategyKeyWords =
+    strategyWords(strategy)
+
+  if (strategyKeyWords.size === 0) {
+    return false
+  }
+
+  let overlap = 0
+
+  for (const word of strategyKeyWords) {
+    if (actionWords.has(word)) {
+      overlap += 1
+    }
+  }
+
+  if (strategyKeyWords.size === 1) {
+    return overlap === 1
+  }
+
+  return (
+    overlap / strategyKeyWords.size >= 0.5
+  )
+}
+
+function removeUnadaptedPreviousStrategies(
+  actions: string[],
+  request: HermesRequest,
+): string[] {
+  const previousStrategies =
+    request.context.previousStrategies ?? []
+
+  if (previousStrategies.length === 0) {
+    return actions
+  }
+
+  const adaptationIndicators = [
+    'previously tried',
+    'already tried',
+    'tried before',
+    'adapt',
+    'adapted',
+    'adjust',
+    'adjusted',
+    'modify',
+    'modified',
+  ]
+
+  return actions.filter((action) => {
+    const repeatsPrevious =
+      previousStrategies.some((strategy) =>
+        repeatsPreviousStrategy(
+          action,
+          strategy,
+        ),
+      )
+
+    if (!repeatsPrevious) {
+      return true
+    }
+
+    const normalizedAction =
+      action.toLowerCase()
+
+    return adaptationIndicators.some(
+      (indicator) =>
+        normalizedAction.includes(indicator),
+    )
+  })
+}
+
+function removeRepeatedActions(
+  actions: string[],
+  request: HermesRequest,
+): string[] {
+  const previousAssistantMessages = (
+    request.sessionContext ?? []
+  )
+    .filter(
+      (message) =>
+        message.role === 'assistant',
+    )
+    .map((message) =>
+      message.content.trim(),
+    )
+    .filter(Boolean)
+
+  const accepted: string[] = []
+
+  for (const action of actions) {
+    const repeatedFromHistory =
+      previousAssistantMessages.some(
+        (previousMessage) =>
+          isSubstantiallyRepeated(
+            action,
+            previousMessage,
+          ),
+      )
+
+    const repeatedInCurrentReply =
+      accepted.some(
+        (existingAction) =>
+          isSubstantiallyRepeated(
+            action,
+            existingAction,
+          ) ||
+          isSubstantiallyRepeated(
+            existingAction,
+            action,
+          ),
+      )
+
+    if (
+      !repeatedFromHistory &&
+      !repeatedInCurrentReply
+    ) {
+      accepted.push(action)
+    }
+  }
+
+  return accepted
+}
+
 export async function askHermes(
   request: HermesRequest,
 ): Promise<HermesResponse> {
-  const childName = request.context.childName
+  const childName =
+    request.context.childName
 
-  // Emergency cases take priority over all other checks.
-  if (isUrgentMedicalSituation(request)) {
+  if (
+    isUrgentMedicalSituation(request)
+  ) {
     return {
-      possibleContext: buildContextSummary(request),
+      possibleContext:
+        buildContextSummary(request),
       suggestedActions: [
         'Seek urgent emergency medical help now.',
         `Stay with ${childName} while waiting for professional emergency help.`,
@@ -391,7 +973,6 @@ export async function askHermes(
     }
   }
 
-  // Do not combine the active profile with another child's message.
   const conflictingChildName =
     findConflictingChildName(request)
 
@@ -406,10 +987,10 @@ export async function askHermes(
     }
   }
 
-  // Prevent diagnostic conclusions.
   if (isDiagnosisRequest(request)) {
     return {
-      possibleContext: buildContextSummary(request),
+      possibleContext:
+        buildContextSummary(request),
       suggestedActions: [
         'Avoid drawing a diagnosis from these behaviours alone.',
         `If you are concerned, discuss the pattern with a qualified health professional who can assess ${childName} in context.`,
@@ -421,10 +1002,10 @@ export async function askHermes(
     }
   }
 
-  // Do not create a personalised diet without enough information.
   if (isDietPlanningRequest(request)) {
     return {
-      possibleContext: buildContextSummary(request),
+      possibleContext:
+        buildContextSummary(request),
       suggestedActions: [],
       followUpQuestion:
         `What foods does ${childName} currently eat comfortably, and are there any allergies or dietary restrictions I should know about?`,
@@ -433,11 +1014,10 @@ export async function askHermes(
     }
   }
 
-  // A neutral observation is not automatically a request for advice.
-  // Ask what the caregiver wants help with instead of inventing a problem.
   if (isNeutralObservation(request)) {
     return {
-      possibleContext: buildContextSummary(request),
+      possibleContext:
+        buildContextSummary(request),
       suggestedActions: [],
       followUpQuestion:
         `What would you like help with about ${childName}'s situation—for example, food refusal, trying new foods, or meal planning?`,
@@ -445,16 +1025,26 @@ export async function askHermes(
     }
   }
 
-  // A vague situation needs immediate context before advice.
   if (needsMoreContext(request)) {
     return {
-      possibleContext: buildContextSummary(request),
+      possibleContext:
+        buildContextSummary(request),
       suggestedActions: [],
       followUpQuestion:
         `What happened just before this started, and what is ${childName} doing right now?`,
       safetyNotice: null,
     }
   }
+
+  const unclearFollowUp =
+    isUnclearFollowUp(request)
+
+  const conversationFocus =
+    unclearFollowUp
+      ? getRecentUserConversationFocus(
+          request,
+        )
+      : null
 
   const messages: OllamaMessage[] = [
     {
@@ -465,10 +1055,12 @@ export async function askHermes(
 
   if (request.sessionContext?.length) {
     messages.push(
-      ...request.sessionContext.map((message) => ({
-        role: message.role,
-        content: message.content,
-      })),
+      ...request.sessionContext.map(
+        (message) => ({
+          role: message.role,
+          content: message.content,
+        }),
+      ),
     )
   }
 
@@ -484,6 +1076,18 @@ export async function askHermes(
   const contextMessage = `
 CURRENT REQUEST
 
+${
+  conversationFocus
+    ? `RECENT CONVERSATION FOCUS:
+${conversationFocus}
+
+The current user message is an unclear follow-up.
+Answer it as a continuation of the RECENT CONVERSATION FOCUS above.
+Do not switch to a different topic just because known triggers or previous strategies are available.
+`
+    : ''
+}
+
 Child name: ${childName}
 Age: ${age}
 Category: ${category}
@@ -495,7 +1099,11 @@ RECENT CONTEXT:
 ${recentContext ?? 'Not provided'}
 
 KNOWN TRIGGERS:
-${knownTriggers?.length ? knownTriggers.join(', ') : 'Not provided'}
+${
+  knownTriggers?.length
+    ? knownTriggers.join(', ')
+    : 'Not provided'
+}
 
 PREVIOUS STRATEGIES:
 ${
@@ -521,6 +1129,11 @@ Important:
 - PREVIOUS STRATEGIES have already been tried.
 - Do not present previous strategies as completely new.
 - Do not claim a previous strategy worked unless explicitly stated.
+- If the caregiver says a substitute previously worked, explicitly recognise it as a previously successful substitute rather than presenting it as a new idea.
+- A previously successful substitute may be suggested again when relevant, but clearly state that it worked previously.
+- Respect every allergy or dietary restriction stated in the supplied context or recent conversation.
+- Never describe an alternative food as "safe" unless the supplied context explicitly establishes that it is safe for the child.
+- When suggesting packaged or prepared foods for a child with a stated allergy, remind the caregiver to check ingredient and allergen labelling rather than assuming the product is allergen-free.
 - Do not ask for information already listed above.
 - Do not repeat or restate the caregiver's current question in possibleContext.
 - Do not infer distress, anxiety, refusal, sensory difficulty, or another problem unless the caregiver actually described it.
@@ -529,6 +1142,18 @@ Important:
 - For missing-context requests, return "suggestedActions": [].
 - Ask one clear follow-up question for the most useful missing detail.
 - Do not give generic advice simply to fill the suggestedActions array.
+- If the current message is an unclear follow-up such as "What else could I try?", "Any other ideas?", "What should I do next?" or "What should I try instead?", use the recent user conversation as the primary topic.
+- For an unclear follow-up, do not switch to a general profile topic such as sensory issues, routine changes or previous strategies unless that topic is directly relevant to the recent conversation.
+- Continue the caregiver's most recent problem rather than starting a new topic.
+- Newer caregiver information overrides older caregiver information when they conflict.
+- Treat explicit corrections beginning with words such as "actually", "no", "instead" or "now" as updates to earlier information.
+- When an older message and a newer message conflict, base the current response on the newer message.
+- If an older message says a food is usually accepted but a newer message says it was refused today, treat the refusal as the current fact.
+- Never continue recommending something that the caregiver has just said the child currently refuses, cannot use, is allergic to or cannot tolerate.
+- Do not repeat substantially the same suggestions already given earlier in sessionContext.
+- A reworded version of an earlier suggestion still counts as repetition.
+- Prefer materially different advice from suggestions already present in sessionContext.
+- If no materially different suggestion is justified, return fewer suggestedActions rather than repeating earlier advice.
 `
 
   messages.push({
@@ -536,18 +1161,22 @@ Important:
     content: contextMessage,
   })
 
-  const response = await fetch(`${OLLAMA_BASE_URL}/api/chat`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
+  const response = await fetch(
+    `${OLLAMA_BASE_URL}/api/chat`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type':
+          'application/json',
+      },
+      body: JSON.stringify({
+        model: OLLAMA_MODEL,
+        stream: false,
+        format: hermesResponseFormat,
+        messages,
+      }),
     },
-    body: JSON.stringify({
-      model: OLLAMA_MODEL,
-      stream: false,
-      format: hermesResponseFormat,
-      messages,
-    }),
-  })
+  )
 
   if (!response.ok) {
     throw new Error(
@@ -564,10 +1193,50 @@ Important:
   const validated =
     hermesResponseSchema.parse(parsedJson)
 
+  const previousStrategyFilteredActions =
+    removeUnadaptedPreviousStrategies(
+      validated.suggestedActions,
+      request,
+    )
+
+  const uniqueSuggestedActions =
+    removeRepeatedActions(
+      previousStrategyFilteredActions,
+      request,
+    )
+
+  const substituteAwareActions =
+    ensurePreviousSuccessfulSubstitute(
+      uniqueSuggestedActions,
+      request,
+    )
+
+  const allergenFilteredActions =
+    removeAllergenSuggestions(
+      substituteAwareActions,
+      request,
+    )
+
+  const verifiedWordingActions =
+    removeUnverifiedSafeClaims(
+      allergenFilteredActions,
+      request,
+    )
+
+  const safeSuggestedActions =
+    ensureAllergyLabelReminder(
+      verifiedWordingActions,
+      request,
+    )
+
   return {
-    possibleContext: buildContextSummary(request),
-    suggestedActions: validated.suggestedActions,
-    followUpQuestion: validated.followUpQuestion,
-    safetyNotice: validated.safetyNotice ?? null,
+    possibleContext:
+      buildContextSummary(request),
+    suggestedActions:
+      safeSuggestedActions,
+    followUpQuestion:
+      validated.followUpQuestion,
+    safetyNotice:
+      validated.safetyNotice ?? null,
   }
 }

@@ -282,3 +282,123 @@ The Hermes adapter now:
 - exposes safety notices to the frontend;
 - has been retested against the BA scenarios;
 - has documented local setup, latency and known limitations.
+## Week 2 - Edge Case Stabilisation
+
+### Scope
+
+The Week 2 work focused on stabilising the existing Hermes local AI assistant rather than introducing a new model or architecture.
+
+The main goals were to:
+
+- reproduce previously reported failed AI chat cases;
+- improve missing-information and unclear follow-up handling;
+- prioritise newer caregiver information when conversation history conflicts;
+- respect allergy restrictions and previously successful food substitutes;
+- reduce repeated context and repeated recommendations;
+- avoid presenting previously tried strategies as new suggestions;
+- record latency and remaining limitations.
+
+### Context Handling
+
+The frontend now sends only child context that is relevant to the caregiver's current situation instead of automatically including every item in the child information snapshot.
+
+For example, food-related requests no longer automatically include unrelated appointment information.
+
+Short-term conversation context is also used so that follow-up questions such as "What else could I try?" remain connected to the most recent conversation topic.
+
+When two caregiver statements conflict, the newest caregiver update is treated as the controlling current fact.
+
+This is short-term session context only. The implementation does not provide persistent long-term memory between independent chat sessions.
+
+### Repetition Handling
+
+Repeated child-profile context is no longer displayed in every assistant response.
+
+Hermes is instructed not to substantially repeat suggestions that were already returned earlier in the current session.
+
+A deterministic post-processing filter also removes recommendations that repeat a strategy listed in `previousStrategies` unless the response clearly identifies that strategy as previously tried and explains that it is being adapted.
+
+If filtering removes all justified recommendations, returning fewer or zero suggested actions is preferred over repeating old advice.
+
+### Allergy and Food Handling
+
+Additional safeguards were added for food and allergy scenarios.
+
+The current implementation:
+
+- preserves stated peanut allergy information from the available short-term context;
+- filters generated recommendations that contain an explicitly detected peanut allergen;
+- prevents unsupported claims that an alternative food is definitely "safe";
+- adds an ingredient and allergen label reminder when an allergy is present;
+- recognises wording such as "apple slices worked instead" as a previously successful substitute;
+- can recommend a previously successful substitute again while explicitly stating that it worked previously.
+
+The allergen filtering currently contains deterministic handling for the tested peanut-allergy case. It is not a general medical allergy database and should not be treated as one.
+
+### Deterministic Safety and Context Guards
+
+Several cases are handled deterministically before a model-generated response is returned.
+
+These include:
+
+- vague situations with insufficient immediate context;
+- conflict between the active child profile and a different child name;
+- urgent medical symptoms such as breathing difficulty or facial/lip swelling;
+- diagnosis requests;
+- personalised diet-plan requests without sufficient dietary information;
+- neutral observations where the caregiver has not actually requested advice.
+
+These deterministic paths were consistently much faster than local model generation.
+
+### Regression Results
+
+Final automated checks:
+
+- Backend unit tests: 9/9 passed.
+- Frontend unit tests: 52/52 passed.
+- Backend and frontend TypeScript checks passed.
+- Backend and frontend lint checks passed.
+- Placeholder validation passed.
+- `git diff --check` passed.
+
+Manual and scripted regression testing confirmed the intended behaviour for:
+
+- missing context;
+- irrelevant child snapshot context;
+- conflicting child names;
+- unclear follow-up messages;
+- contradictory conversation history;
+- repeated context display;
+- repeated suggestions;
+- previously tried strategies;
+- diagnosis boundaries;
+- diet-request boundaries;
+- urgent allergy symptoms;
+- peanut allergy restrictions;
+- previously successful food substitutes.
+
+### Latency
+
+Local Hermes model responses showed variable latency.
+
+During regression testing, model-generated responses were commonly around 20-50 seconds. One observed slow response took approximately 72 seconds.
+
+Deterministic safety and missing-context responses were effectively immediate, usually around 0-0.01 seconds.
+
+Because the local model can occasionally exceed 60 seconds, the frontend request timeout was increased to 90 seconds.
+
+Latency optimisation was not the primary focus of this task.
+
+### Remaining Limitations
+
+The current implementation still has several limitations:
+
+- Hermes is a generative local model, so wording and recommendation quality can vary between runs.
+- Follow-up questions can occasionally contain an unsupported or irrelevant detail even when suggested actions have been correctly filtered.
+- Filtering can result in zero suggested actions when generated recommendations are duplicates or repeat previously tried strategies.
+- Allergy information is only retained while it remains available in the supplied short-term session context.
+- Deterministic allergen filtering currently covers the tested peanut-allergy case rather than every possible food allergen.
+- The system does not provide persistent memory between separate chat sessions.
+- Local model inference can be slow depending on the machine and request.
+
+The remaining limitations should be considered in future prompt refinement and wider regression testing.

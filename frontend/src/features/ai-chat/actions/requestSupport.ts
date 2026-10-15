@@ -31,7 +31,7 @@ const USE_MOCK = process.env.USE_MOCK_ASSISTANT === 'true'
  * machine replies have taken 27-40s (HERMES-PROTOTYPE-FINDINGS, Sprint 3
  * tracing). 30s cut those off as "took too long", so allow a minute.
  */
-const TIMEOUT_MS = 60_000
+const TIMEOUT_MS = 90_000
 
 const sessionMessageSchema = z.object({
   role: z.enum(['user', 'assistant']),
