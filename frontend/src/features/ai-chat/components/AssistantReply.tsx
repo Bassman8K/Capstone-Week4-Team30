@@ -1,10 +1,30 @@
 import { Fragment } from 'react'
 import type { SupportResponse } from '../types'
 
+function shouldShowContext(possibleContext: string): boolean {
+  const context = possibleContext.trim()
+
+  const repeatedProfilePrefixes = [
+    'Recent context:',
+    'Known triggers:',
+    'Previously tried strategies:',
+  ]
+
+  if (context === 'No additional context provided.') {
+    return false
+  }
+
+  return !repeatedProfilePrefixes.some((prefix) =>
+    context.startsWith(prefix),
+  )
+}
+
 /**
- * A structured assistant reply, rendered the way the "Main AI" frame shows it:
- * the context as prose, then the suggestions as inline links inside the
- * sentence — "You can try <action> or <action>" — rather than a list.
+ * Renders a structured assistant response.
+ *
+ * Routine profile/context summaries are kept for Hermes internally but are
+ * not repeated to the caregiver on every reply. Exceptional context, such as
+ * a child-profile conflict, can still be shown.
  */
 export function AssistantReply({
   response,
@@ -13,13 +33,10 @@ export function AssistantReply({
   response: SupportResponse
   onSelectAction?: (action: string) => void
 }) {
+  const showContext = shouldShowContext(response.possibleContext)
+
   return (
     <div className="space-y-2">
-      {/*
-        Shown above the advice, not among it — when the agent flags something
-        needing more than everyday support, that shouldn't be one bullet
-        competing with meal tips.
-      */}
       {response.safetyNotice && (
         <p
           role="alert"
@@ -29,7 +46,7 @@ export function AssistantReply({
         </p>
       )}
 
-      <p>{response.possibleContext}</p>
+      {showContext && <p>{response.possibleContext}</p>}
 
       {response.suggestedActions.length > 0 && (
         <p>
@@ -50,7 +67,9 @@ export function AssistantReply({
         </p>
       )}
 
-      <p className="text-zinc-600 italic">{response.followUpQuestion}</p>
+      <p className="text-zinc-600 italic">
+        {response.followUpQuestion}
+      </p>
     </div>
   )
 }

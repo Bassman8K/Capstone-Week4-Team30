@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { Menu, Send } from 'lucide-react'
-import { describeChildContext } from '@/features/children/context'
+import { describeRelevantChildContext } from '@/features/children/context'
 import { mockChild, mockChildContext } from '@/features/children/mock'
 import { requestSupport } from '../actions/requestSupport'
 import type { ChatStatus, ChatTurn, SessionMessage } from '../types'
@@ -35,20 +35,30 @@ const SESSION_CONTEXT_TURNS = 4
 
 function toSessionMessage(turn: ChatTurn): SessionMessage {
   if (turn.kind === 'user') {
-    return { role: 'user', content: turn.body }
+    return {
+      role: 'user',
+      content: turn.body,
+    }
   }
 
   if (turn.kind === 'assistant-text') {
-    return { role: 'assistant', content: turn.body }
+    return {
+      role: 'assistant',
+      content: turn.body,
+    }
   }
+
+  const parts = [
+    ...(turn.response.safetyNotice
+      ? [turn.response.safetyNotice]
+      : []),
+    ...turn.response.suggestedActions,
+    turn.response.followUpQuestion,
+  ]
 
   return {
     role: 'assistant',
-    content: [
-      turn.response.possibleContext,
-      ...turn.response.suggestedActions,
-      turn.response.followUpQuestion,
-    ].join(' '),
+    content: parts.join(' '),
   }
 }
 
@@ -90,7 +100,10 @@ export function ChatPanel() {
       category: CATEGORY,
       currentSituation: situation,
       // What the carer can see in the info panel — previously never sent.
-      recentContext: describeChildContext(mockChildContext),
+      recentContext: describeRelevantChildContext(
+        mockChildContext,
+        situation
+      ),
       knownTriggers: mockChild.knownTriggers,
       previousStrategies: mockChild.previousStrategies,
       sessionContext: history.slice(-SESSION_CONTEXT_TURNS).map(toSessionMessage),

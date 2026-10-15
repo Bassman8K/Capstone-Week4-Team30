@@ -35,3 +35,65 @@ export function describeChildContext(snapshot: ChildContextSnapshot): string | u
 
   return logged.map(([label, value]) => `${label}: ${value}.`).join(' ')
 }
+/**
+ * Returns only snapshot information that is directly relevant to the
+ * caregiver's current message.
+ *
+ * The full snapshot remains visible in the context drawer, but unrelated
+ * details are not pushed into every Hermes request.
+ */
+export function describeRelevantChildContext(
+  snapshot: ChildContextSnapshot,
+  situation: string
+): string | undefined {
+  const text = situation.trim().toLowerCase()
+
+  const relevantLabels = new Set<string>()
+
+  if (
+    /\b(sleep|slept|tired|bedtime|night|wake|woke)\b/.test(text)
+  ) {
+    relevantLabels.add('Sleep')
+  }
+
+  if (
+    /\b(breakfast|morning meal)\b/.test(text)
+  ) {
+    relevantLabels.add('Breakfast')
+  }
+
+  if (
+    /\b(mood|upset|stressed|stress|anxious|anxiety|angry|sad|calm)\b/.test(
+      text
+    )
+  ) {
+    relevantLabels.add('Mood')
+  }
+
+  if (
+    /\b(school|class|teacher|homework|classroom)\b/.test(text)
+  ) {
+    relevantLabels.add('School')
+  }
+
+  if (
+    /\b(appointment|doctor|clinic|therapy|therapist)\b/.test(text)
+  ) {
+    relevantLabels.add('Appointment')
+  }
+
+  const relevantEntries = childContextEntries(snapshot).filter(
+    (entry): entry is [string, string] =>
+      entry[1] !== null &&
+      entry[1].trim() !== '' &&
+      relevantLabels.has(entry[0])
+  )
+
+  if (relevantEntries.length === 0) {
+    return undefined
+  }
+
+  return relevantEntries
+    .map(([label, value]) => `${label}: ${value}.`)
+    .join(' ')
+}

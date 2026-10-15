@@ -72,19 +72,31 @@ describe('ChatPanel', () => {
     )
   })
 
-  it('sends the context shown in the info panel as recentContext', async () => {
+  it('sends only relevant context from the info panel as recentContext', async () => {
     render(<ChatPanel />)
 
-    await submit("Ben isn't eating his dinner")
+    await submit('Ben is anxious about his appointment today')
 
-    // Sprint 3 tracing: the panel showed sleep, breakfast and mood, but none of
-    // it reached the AI, so answers ignored it.
     expect(mockedRequestSupport).toHaveBeenCalledWith(
       expect.objectContaining({
-        recentContext: expect.stringMatching(/Breakfast: Skipped/),
+        currentSituation: 'Ben is anxious about his appointment today',
+        recentContext: 'Mood: Stressed. Appointment: 4:30.',
       })
     )
   })
+})
+it('does not send unrelated snapshot context for a food refusal', async () => {
+  render(<ChatPanel />)
+
+  await submit('Ben refused beef yesterday.')
+
+  expect(mockedRequestSupport).toHaveBeenCalledWith(
+    expect.objectContaining({
+      currentSituation: 'Ben refused beef yesterday.',
+      recentContext: undefined,
+    })
+  )
+})
 
   it('shows the follow-up question when the assistant suggests no actions yet', async () => {
     mockedRequestSupport.mockResolvedValue({
@@ -131,7 +143,7 @@ describe('ChatPanel', () => {
           {
             role: 'assistant',
             content:
-              'This often comes down to how a food feels. turning it into a soup Was anything different today?',
+              'turning it into a soup Was anything different today?',
           },
         ],
       })
@@ -387,4 +399,3 @@ describe('ChatPanel', () => {
       screen.getByRole('button', { name: /close ben's info/i })
     ).toBeInTheDocument()
   })
-})
