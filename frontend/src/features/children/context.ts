@@ -18,6 +18,40 @@ export function childContextEntries(snapshot: ChildContextSnapshot): Array<[stri
   ]
 }
 
+export interface ContextSection {
+  heading: string
+  rows: Array<{ label: string; value: string | null }>
+}
+
+/**
+ * How the info panel groups the entries, following the headings in Mei's
+ * Sprint 3 "AI Tab - Context Tab" frames. Each entry is [entry label, label
+ * shown to the carer]. Display-only: the AI request keeps the flat entry
+ * labels, so this can change without touching what the BA is validating.
+ */
+const SECTIONS: Array<{ heading: string; items: Array<[string, string]> }> = [
+  { heading: 'Sleep', items: [['Sleep', 'Total sleep']] },
+  { heading: 'Food', items: [['Breakfast', 'Breakfast']] },
+  { heading: 'Observations', items: [['Mood', 'Mood']] },
+  {
+    heading: 'Events',
+    items: [
+      ['School', 'School'],
+      ['Appointment', 'Next appointment'],
+    ],
+  },
+]
+
+/** The snapshot grouped into the panel's sections. */
+export function childContextSections(snapshot: ChildContextSnapshot): ContextSection[] {
+  const values = new Map(childContextEntries(snapshot))
+
+  return SECTIONS.map(({ heading, items }) => ({
+    heading,
+    rows: items.map(([key, label]) => ({ label, value: values.get(key) ?? null })),
+  }))
+}
+
 /**
  * The snapshot as the adapter's `recentContext` string, e.g.
  * "Sleep: 6.5 hours. Breakfast: Skipped. Mood: Stressed."
@@ -56,8 +90,12 @@ export function describeRelevantChildContext(
     relevantLabels.add('Sleep')
   }
 
+  // Any eating question makes today's breakfast relevant — for "Ben isn't
+  // eating his dinner", a skipped breakfast is the most useful fact we have.
   if (
-    /\b(breakfast|morning meal)\b/.test(text)
+    /\b(breakfast|morning meal|eat|eats|eating|ate|dinner|lunch|meal|meals|food|snack|hungry)\b/.test(
+      text
+    )
   ) {
     relevantLabels.add('Breakfast')
   }

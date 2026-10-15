@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { ChatPanel } from '@/features/ai-chat/components/ChatPanel'
 import { requestSupport } from '@/features/ai-chat/actions/requestSupport'
@@ -374,6 +374,45 @@ it('does not send unrelated snapshot context for a food refusal', async () => {
     expect(
       screen.getByText(/sleep: 6.5 hours/i)
     ).toBeInTheDocument()
+  })
+
+  it('keeps the chat box a fixed height so long conversations scroll inside it', () => {
+    render(<ChatPanel />)
+
+    const box = screen.getByRole('textbox', { name: /describe/i }).closest('div.flex.flex-col')
+
+    // Mei's Sprint 3 priority #1 — the box no longer grows with the thread.
+    expect(box).toHaveClass('h-[32rem]')
+    expect(box).not.toHaveClass('min-h-[28rem]')
+  })
+
+  it('shows the context grouped under headings with today\'s date', async () => {
+    const user = userEvent.setup()
+
+    render(<ChatPanel />)
+
+    await user.click(screen.getByRole('button', { name: /show ben's info/i }))
+
+    const panel = screen.getByRole('complementary', { name: /ben's info/i })
+
+    for (const heading of ['Sleep', 'Food', 'Observations', 'Events']) {
+      expect(within(panel).getByText(heading)).toBeInTheDocument()
+    }
+    expect(within(panel).getByText(/total sleep: 6.5 hours/i)).toBeInTheDocument()
+    expect(within(panel).getByText(String(new Date().getFullYear()), { exact: false })).toBeInTheDocument()
+  })
+
+  it('lets the context panel scroll within the chat\'s height', async () => {
+    const user = userEvent.setup()
+
+    render(<ChatPanel />)
+
+    await user.click(screen.getByRole('button', { name: /show ben's info/i }))
+
+    const panel = screen.getByRole('complementary', { name: /ben's info/i })
+
+    // Mei's Sprint 3 priority #3 — scroll rather than overflow.
+    expect(panel).toHaveClass('overflow-y-auto', 'lg:h-[32rem]')
   })
 
   it('lays the context panel over the chat on small screens', async () => {

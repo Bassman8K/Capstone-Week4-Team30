@@ -185,11 +185,17 @@ function isDiagnosisRequest(
     .join(' ')
     .toLowerCase()
 
+  const childName = request.context.childName.trim().toLowerCase()
+
   const diagnosisPhrases = [
     'does this mean',
     'does he have',
     'does she have',
     'do they have',
+    // Parents name the child far more often than they say "he" or "she":
+    // "Does Ben have ADHD?", "Is Ben autistic?"
+    `does ${childName} have`,
+    `is ${childName} `,
     'is this adhd',
     'is this autism',
     'diagnose',
@@ -470,9 +476,11 @@ function ensureAllergyLabelReminder(
 function isNeutralObservation(
   request: HermesRequest,
 ): boolean {
+  // Phones type curly apostrophes ("isn’t"); fold them so the word lists match.
   const text = request.context.currentSituation
     .trim()
     .toLowerCase()
+    .replace(/[‘’]/g, "'")
 
   const requestIndicators = [
     '?',
@@ -517,6 +525,17 @@ function isNeutralObservation(
     'unsafe',
     'problem',
     'issue',
+    // Negations describe something going wrong. Without them "Ben isn't
+    // eating his dinner and I don't know why" — the demo scenario — matched
+    // "eating" and was treated as a neutral observation, so no advice.
+    "isn't",
+    'is not',
+    "doesn't",
+    'does not',
+    "didn't",
+    'did not',
+    "don't know",
+    'skipp',
   ]
 
   const observationIndicators = [

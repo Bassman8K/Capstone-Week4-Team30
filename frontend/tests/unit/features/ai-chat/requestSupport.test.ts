@@ -84,4 +84,21 @@ describe('requestSupport', () => {
 
     expect(result.error).toMatch(/couldn't reach the assistant/i)
   })
+
+  it('falls back to the default adapter when HERMES_ADAPTER_URL is empty', async () => {
+    // sync-env writes `HERMES_ADAPTER_URL=` when .env doesn't set it. That
+    // empty value used to be kept, so every request failed with Invalid URL.
+    vi.stubEnv('HERMES_ADAPTER_URL', '')
+    vi.resetModules()
+    const { requestSupport: freshRequestSupport } = await import(
+      '@/features/ai-chat/actions/requestSupport'
+    )
+    adapterReturns({ possibleContext: 'x', suggestedActions: [], followUpQuestion: 'y' })
+
+    const result = await freshRequestSupport(request)
+
+    expect(result.success).toBe(true)
+    expect(vi.mocked(fetch).mock.calls[0]?.[0]).toBe('http://localhost:8787/api/hermes')
+    vi.unstubAllEnvs()
+  })
 })
