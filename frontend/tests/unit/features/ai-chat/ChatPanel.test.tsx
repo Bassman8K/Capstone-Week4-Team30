@@ -376,6 +376,93 @@ it('does not send unrelated snapshot context for a food refusal', async () => {
     ).toBeInTheDocument()
   })
 
+  it('puts each suggestion on its own left-aligned line', async () => {
+    mockedRequestSupport.mockResolvedValue({
+      success: true,
+      data: { ...reply, suggestedActions: ['turning it into a soup', 'offering a familiar food'] },
+    })
+
+    render(<ChatPanel />)
+
+    await submit()
+
+    const first = await screen.findByRole('button', { name: 'turning it into a soup' })
+    const second = screen.getByRole('button', { name: 'offering a familiar food' })
+
+    // Mei's Sprint 3 Week 2 review: wrapped suggestions were coming out centred.
+    for (const suggestion of [first, second]) {
+      expect(suggestion).toHaveClass('block', 'text-left')
+    }
+    expect(screen.getByText('or')).toBeInTheDocument()
+  })
+
+  it('lists the conversation\'s suggestions under recent recommendations', async () => {
+    render(<ChatPanel />)
+
+    const user = await submit()
+    await screen.findByText(/was anything different today/i)
+
+    await user.click(screen.getByRole('button', { name: /show ben's info/i }))
+
+    const panel = screen.getByRole('complementary', { name: /ben's info/i })
+
+    expect(within(panel).getByText('Recent recommendations')).toBeInTheDocument()
+    expect(within(panel).getByText('turning it into a soup')).toBeInTheDocument()
+  })
+
+  it('shows "None yet" under recent recommendations before any reply', async () => {
+    const user = userEvent.setup()
+
+    render(<ChatPanel />)
+
+    await user.click(screen.getByRole('button', { name: /show ben's info/i }))
+
+    const panel = screen.getByRole('complementary', { name: /ben's info/i })
+
+    expect(within(panel).getByText('None yet')).toBeInTheDocument()
+  })
+
+  it('resets the conversation from the header', async () => {
+    render(<ChatPanel />)
+
+    const resetButton = screen.getByRole('button', { name: /reset chat/i })
+    expect(resetButton).toBeDisabled()
+
+    const user = await submit('He skipped lunch')
+    await screen.findByText(/was anything different today/i)
+
+    await user.click(resetButton)
+
+    expect(screen.queryByText('He skipped lunch')).not.toBeInTheDocument()
+    expect(screen.queryByText(/was anything different today/i)).not.toBeInTheDocument()
+    expect(screen.getByText(/describe what's happening/i)).toBeInTheDocument()
+    expect(resetButton).toBeDisabled()
+  })
+
+  it('clears an error state on reset', async () => {
+    mockedRequestSupport.mockResolvedValue({ success: false, error: 'Service unavailable.' })
+
+    render(<ChatPanel />)
+
+    const user = await submit('He skipped lunch')
+    await screen.findByRole('alert')
+
+    await user.click(screen.getByRole('button', { name: /reset chat/i }))
+
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it('cannot reset while a reply is loading', async () => {
+    mockedRequestSupport.mockReturnValue(new Promise(() => {}))
+
+    render(<ChatPanel />)
+
+    await submit()
+
+    expect(screen.getByRole('status')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /reset chat/i })).toBeDisabled()
+  })
+
   it('keeps the chat box a fixed height so long conversations scroll inside it', () => {
     render(<ChatPanel />)
 

@@ -48,23 +48,27 @@ export function AssistantReply({
 
       {showContext && <p>{response.possibleContext}</p>}
 
+      {/*
+        One suggestion per line, left-aligned, per the "Main AI" frame (Mei's
+        Sprint 3 Week 2 review). Buttons centre their text by default, so a
+        wrapped suggestion used to come out centred — hence text-left.
+      */}
       {response.suggestedActions.length > 0 && (
-        <p>
-          You can try{' '}
+        <div className="space-y-1">
+          <p>You can try</p>
           {response.suggestedActions.map((action, index) => (
             <Fragment key={action}>
-              {index > 0 && ' or '}
+              {index > 0 && <p className="text-zinc-500">or</p>}
               <button
                 type="button"
                 onClick={() => onSelectAction?.(action)}
-                className="text-brand-700 hover:text-brand-800 underline underline-offset-2"
+                className="text-brand-700 hover:text-brand-800 block text-left underline underline-offset-2"
               >
                 {action}
               </button>
             </Fragment>
           ))}
-          .
-        </p>
+        </div>
       )}
 
       <p className="text-zinc-600 italic">

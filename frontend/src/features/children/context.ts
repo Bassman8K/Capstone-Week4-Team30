@@ -10,9 +10,15 @@ import type { ChildContextSnapshot } from './types'
  */
 export function childContextEntries(snapshot: ChildContextSnapshot): Array<[string, string | null]> {
   return [
+    ['Bedtime', snapshot.bedtime],
+    ['Woke up', snapshot.wokeUp],
     ['Sleep', snapshot.sleepHours === null ? null : `${snapshot.sleepHours} hours`],
     ['Breakfast', snapshot.breakfast],
+    ['Lunch', snapshot.lunch],
+    ['Dinner', snapshot.dinner],
+    ['Last snack', snapshot.lastSnack],
     ['Mood', snapshot.mood],
+    ['Stress', snapshot.stress],
     ['School', snapshot.schoolHours],
     ['Appointment', snapshot.nextAppointment],
   ]
@@ -30,9 +36,30 @@ export interface ContextSection {
  * labels, so this can change without touching what the BA is validating.
  */
 const SECTIONS: Array<{ heading: string; items: Array<[string, string]> }> = [
-  { heading: 'Sleep', items: [['Sleep', 'Total sleep']] },
-  { heading: 'Food', items: [['Breakfast', 'Breakfast']] },
-  { heading: 'Observations', items: [['Mood', 'Mood']] },
+  {
+    heading: 'Sleep',
+    items: [
+      ['Bedtime', 'Last night slept'],
+      ['Woke up', 'Woke up'],
+      ['Sleep', 'Total sleep'],
+    ],
+  },
+  {
+    heading: 'Food',
+    items: [
+      ['Breakfast', 'Breakfast'],
+      ['Lunch', 'Lunch'],
+      ['Dinner', 'Dinner'],
+      ['Last snack', 'Last snack'],
+    ],
+  },
+  {
+    heading: 'Observations',
+    items: [
+      ['Mood', 'Mood'],
+      ['Stress', 'Stress'],
+    ],
+  },
   {
     heading: 'Events',
     items: [
