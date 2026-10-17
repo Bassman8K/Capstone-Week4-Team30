@@ -7,16 +7,23 @@ import { formatDate } from '@/lib/utils'
  * assistant already knows, so the carer can see why it's suggesting what it is.
  *
  * Laid out per Mei's Sprint 3 "AI Tab - Context Tab" frames: the child and
- * today's date up top, then the context grouped under headings. It scrolls
- * inside its own height when there's more than fits.
+ * today's date up top, then the context grouped under headings, then the
+ * conversation's recent recommendations. It scrolls inside its own height when
+ * there's more than fits.
  */
 export function ContextDrawer({
   childName,
   snapshot,
+  recentRecommendations = [],
   className = '',
 }: {
   childName: string
   snapshot: ChildContextSnapshot
+  /**
+   * Suggestions from this conversation, newest first. Chat history isn't saved
+   * yet, so this starts empty on every visit.
+   */
+  recentRecommendations?: string[]
   /** Positioning and height from the parent — it decides overlay vs. side column. */
   className?: string
 }) {
@@ -42,6 +49,19 @@ export function ContextDrawer({
             ))}
           </div>
         ))}
+
+        <div>
+          <dt className="font-semibold">Recent recommendations</dt>
+          {recentRecommendations.length === 0 ? (
+            <dd className="mt-1 pl-3 text-white/60 italic">None yet</dd>
+          ) : (
+            recentRecommendations.map((recommendation) => (
+              <dd key={recommendation} className="mt-1 pl-3">
+                {recommendation}
+              </dd>
+            ))
+          )}
+        </div>
       </dl>
     </aside>
   )

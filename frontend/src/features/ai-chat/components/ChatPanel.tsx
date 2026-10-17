@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Menu, Send } from 'lucide-react'
+import { Menu, RotateCcw, Send } from 'lucide-react'
 import { describeRelevantChildContext } from '@/features/children/context'
 import { mockChild, mockChildContext } from '@/features/children/mock'
 import { requestSupport } from '../actions/requestSupport'
@@ -60,6 +60,18 @@ function toSessionMessage(turn: ChatTurn): SessionMessage {
     role: 'assistant',
     content: parts.join(' '),
   }
+}
+
+/** How many suggestions the info panel lists under "Recent recommendations". */
+const RECENT_RECOMMENDATIONS = 3
+
+/** The conversation's suggestions, newest first, without repeats. */
+function recentRecommendations(turns: ChatTurn[]): string[] {
+  const actions = turns
+    .flatMap((turn) => (turn.kind === 'assistant-reply' ? turn.response.suggestedActions : []))
+    .reverse()
+
+  return [...new Set(actions)].slice(0, RECENT_RECOMMENDATIONS)
 }
 
 /**
@@ -149,6 +161,17 @@ export function ChatPanel() {
 
   const canRetry = findLastPrompt(turns) !== null
 
+  /**
+   * Back to a fresh conversation without leaving the tab (Mei's Sprint 3 Week 2
+   * review — previously the only way was to switch tabs and back).
+   */
+  function reset() {
+    setTurns([])
+    setInput('')
+    setStatus('idle')
+    setErrorMessage(null)
+  }
+
   return (
     <div className="relative grid gap-4 lg:grid-cols-[2fr_1fr]">
       {/*
@@ -157,7 +180,24 @@ export function ChatPanel() {
       */}
       <div className="flex h-[32rem] flex-col overflow-hidden rounded-lg bg-white ring-1 ring-zinc-200">
         <div className="flex items-center justify-between bg-slate-800 px-4 py-2 text-white">
-          <span className="text-sm font-medium">Assistant</span>
+          {/*
+            Next to the title rather than the menu button, so it isn't hit by
+            accident when opening the info panel. Disabled mid-reply so a late
+            answer can't land in the cleared conversation.
+          */}
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-medium">Assistant</span>
+
+            <button
+              type="button"
+              onClick={reset}
+              disabled={isSending || turns.length === 0}
+              className="flex items-center gap-1 rounded-full bg-white/10 px-3 py-1 text-xs font-medium hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              <RotateCcw className="size-3.5" aria-hidden="true" />
+              Reset Chat
+            </button>
+          </div>
 
           <button
             type="button"
@@ -282,6 +322,7 @@ export function ChatPanel() {
           <ContextDrawer
             childName={mockChild.name}
             snapshot={mockChildContext}
+            recentRecommendations={recentRecommendations(turns)}
             className="absolute inset-y-0 right-0 z-20 w-4/5 max-w-xs rounded-r-none lg:static lg:h-[32rem] lg:w-auto lg:max-w-none lg:rounded-r-lg"
           />
         </>
