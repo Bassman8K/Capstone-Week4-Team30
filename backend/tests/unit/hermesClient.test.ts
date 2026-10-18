@@ -67,7 +67,34 @@ describe('askHermes — neutral observations', () => {
     expect(fetchMock).toHaveBeenCalledOnce()
   })
 })
+describe('askHermes — missing context', () => {
+  it('does not treat a mood-only profile value as enough context for a vague situation', async () => {
+    const fetchMock = stubModel()
 
+    const request: HermesRequest = {
+      context: {
+        childName: 'Ben',
+        age: 8,
+        category: 'general-support',
+        currentSituation: 'Ben is upset. What should I do?',
+        recentContext: 'Mood: Stressed.',
+        knownTriggers: ['Loud environments'],
+      },
+      userMessage: 'Ben is upset. What should I do?',
+    }
+
+    const reply = (await askHermes(request)) as {
+      suggestedActions: string[]
+      followUpQuestion: string
+    }
+
+    expect(fetchMock).not.toHaveBeenCalled()
+    expect(reply.suggestedActions).toEqual([])
+    expect(reply.followUpQuestion).toBe(
+      'What happened just before this started, and what is Ben doing right now?',
+    )
+  })
+})
 describe('askHermes — diagnosis requests', () => {
   it.each([
     'Does Ben have ADHD because he cannot sit still?',
