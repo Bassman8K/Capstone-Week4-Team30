@@ -113,6 +113,10 @@ function needsMoreContext(
     .trim()
     .toLowerCase()
 
+  const normalizedRecentContext = ` ${(recentContext ?? '')
+    .trim()
+    .toLowerCase()} `
+
   const vagueSituations = [
     'is upset',
     'seems upset',
@@ -135,13 +139,27 @@ function needsMoreContext(
     ' since ',
     ' during ',
     ' before ',
+    ' started ',
+    ' happened ',
   ]
 
-  const hasImmediateDetail =
-    Boolean(recentContext?.trim()) ||
+  const hasSituationDetail =
     detailIndicators.some((indicator) =>
-      normalizedSituation.includes(indicator),
+      ` ${normalizedSituation} `.includes(
+        indicator,
+      ),
     )
+
+  const hasSpecificRecentDetail =
+    detailIndicators.some((indicator) =>
+      normalizedRecentContext.includes(
+        indicator,
+      ),
+    )
+
+  const hasImmediateDetail =
+    hasSituationDetail ||
+    hasSpecificRecentDetail
 
   return isVague && !hasImmediateDetail
 }
