@@ -203,15 +203,15 @@ function isDiagnosisRequest(
     .join(' ')
     .toLowerCase()
 
-  const childName = request.context.childName.trim().toLowerCase()
+  const childName = request.context.childName
+    .trim()
+    .toLowerCase()
 
   const diagnosisPhrases = [
     'does this mean',
     'does he have',
     'does she have',
     'do they have',
-    // Parents name the child far more often than they say "he" or "she":
-    // "Does Ben have ADHD?", "Is Ben autistic?"
     `does ${childName} have`,
     `is ${childName} `,
     'is this adhd',
@@ -269,19 +269,32 @@ function isDietPlanningRequest(
   )
 }
 
-function getExplicitAllergens(
+function getUserProvidedText(
   request: HermesRequest,
-): string[] {
-  const text = [
+): string {
+  return [
     request.context.currentSituation,
     request.context.recentContext ?? '',
     request.userMessage,
-    ...(request.sessionContext ?? []).map(
-      (message) => message.content,
-    ),
+    ...(request.sessionContext ?? [])
+      .filter(
+        (message) =>
+          message.role === 'user',
+      )
+      .map(
+        (message) =>
+          message.content,
+      ),
   ]
     .join(' ')
     .toLowerCase()
+}
+
+function getExplicitAllergens(
+  request: HermesRequest,
+): string[] {
+  const text =
+    getUserProvidedText(request)
 
   const allergens = new Set<string>()
 
@@ -335,22 +348,32 @@ function removeAllergenSuggestions(
 function mentionsAllergy(
   request: HermesRequest,
 ): boolean {
-  const text = [
-    request.context.currentSituation,
-    request.context.recentContext ?? '',
-    request.userMessage,
-    ...(request.sessionContext ?? []).map(
-      (message) => message.content,
-    ),
-  ]
-    .join(' ')
-    .toLowerCase()
+  const text =
+    getUserProvidedText(request)
 
   return [
     'allergy',
     'allergic',
     'allergies',
-  ].some((term) => text.includes(term))
+  ].some((term) =>
+    text.includes(term),
+  )
+}
+
+function removeUnverifiedAllergyClaims(
+  actions: string[],
+  request: HermesRequest,
+): string[] {
+  if (mentionsAllergy(request)) {
+    return actions
+  }
+
+  return actions.filter(
+    (action) =>
+      !/\ballerg(?:y|ies|ic|en|ens)\b/i.test(
+        action,
+      ),
+  )
 }
 
 function getPreviouslySuccessfulSubstitute(
@@ -494,7 +517,6 @@ function ensureAllergyLabelReminder(
 function isNeutralObservation(
   request: HermesRequest,
 ): boolean {
-  // Phones type curly apostrophes ("isn’t"); fold them so the word lists match.
   const text = request.context.currentSituation
     .trim()
     .toLowerCase()
@@ -543,9 +565,6 @@ function isNeutralObservation(
     'unsafe',
     'problem',
     'issue',
-    // Negations describe something going wrong. Without them "Ben isn't
-    // eating his dinner and I don't know why" — the demo scenario — matched
-    // "eating" and was treated as a neutral observation, so no advice.
     "isn't",
     'is not',
     "doesn't",
@@ -806,13 +825,6 @@ function isSubstantiallyRepeated(
   )
 }
 
-/**
- * Strategy matching uses basic word normalisation so:
- * break = breaks
- * picture = pictures
- *
- * This makes previous-strategy filtering more reliable.
- */
 const STRATEGY_GENERIC_WORDS = new Set([
   'using',
   'giving',
@@ -887,6 +899,159 @@ function repeatsPreviousStrategy(
   return (
     overlap / strategyKeyWords.size >= 0.5
   )
+}
+
+const GENERIC_REFUSAL_ITEMS =
+  new Set([
+    'food',
+    'foods',
+    'meal',
+    'meals',
+    'snack',
+    'snacks',
+    'breakfast',
+    'lunch',
+    'dinner',
+  ])
+
+function getExplicitlyRefusedFoods(
+  request: HermesRequest,
+): string[] {
+  const userMessages = [
+    ...(request.sessionContext ?? [])
+      .filter(
+        (message) =>
+          message.role === 'user',
+      )
+      .map(
+        (message) =>
+          message.content,
+      ),
+    request.context.currentSituation,
+    request.userMessage,
+  ]
+
+  const refusedFoods =
+    new Set<string>()
+
+  const refusalPattern =
+    /\brefused\s+(?:(?:his|her|their)\s+)?(?:usual\s+)?([a-z][a-z -]{1,40}?)(?=\s+(?:today|yesterday|tonight|this morning|this afternoon|this evening)\b|[,.!?]|$)/gi
+
+  for (const message of userMessages) {
+    for (
+      const match of message.matchAll(
+        refusalPattern,
+      )
+    ) {
+      const food = match[1]
+        ?.trim()
+        .toLowerCase()
+        .replace(/\s+/g, ' ')
+
+      if (
+        food &&
+        !GENERIC_REFUSAL_ITEMS.has(food)
+      ) {
+        refusedFoods.add(food)
+      }
+    }
+  }
+
+  return [...refusedFoods]
+}
+
+function removeRefusedFoodSuggestions(
+  actions: string[],
+  request: HermesRequest,
+): string[] {
+  const refusedFoods =
+    getExplicitlyRefusedFoods(request)
+
+  if (refusedFoods.length === 0) {
+    return actions
+  }
+
+  const recommendationPattern =
+    /\b(offer|offering|try|trying|serve|serving|prepare|preparing|give|giving|make|making|introduce|introducing|consider)\b/i
+
+return actions.filter((action) => {
+  const text = action.toLowerCase()
+
+  const genericRetryPattern =
+    /\b(the meal|the food|same meal|same food|offer it again|offer again|try it again|try again|retry|smaller pieces)\b/i
+
+  if (
+    refusedFoods.length > 0 &&
+    genericRetryPattern.test(text)
+  ) {
+    return false
+  }
+
+  return !refusedFoods.some(
+    (food) => {
+      if (!text.includes(food)) {
+        return false
+      }
+
+      const avoidancePhrases = [
+        `avoid ${food}`,
+        `without ${food}`,
+        `${food}-free`,
+        `instead of ${food}`,
+        `rather than ${food}`,
+        `alternative to ${food}`,
+      ]
+
+      const isAvoidanceAdvice =
+        avoidancePhrases.some(
+          (phrase) =>
+            text.includes(phrase),
+        )
+
+      if (isAvoidanceAdvice) {
+        return false
+      }
+
+      return recommendationPattern.test(
+        text,
+      )
+    },
+  )
+})
+}
+function sanitizeFollowUpQuestion(
+  question: string,
+  request: HermesRequest,
+): string {
+  const refusedFoods =
+    getExplicitlyRefusedFoods(request)
+
+  const normalizedQuestion =
+    question.toLowerCase()
+
+  const retryIndicators =
+    /\b(try|trying|retry|again|encourage|offer|offering|serve|serving|prepare|preparing|reintroduce|reintroducing|taste|tasting)\b/i
+
+  const refusedFoodMentioned =
+    refusedFoods.some((food) =>
+      normalizedQuestion.includes(food),
+    )
+
+  if (
+    refusedFoodMentioned &&
+    retryIndicators.test(question)
+  ) {
+    return `What other foods is ${request.context.childName} willing to eat today instead?`
+  }
+
+  if (
+    !mentionsAllergy(request) &&
+    /\ballerg(?:y|ies|ic|en|ens)\b/i.test(question)
+  ) {
+    return `What other foods is ${request.context.childName} willing to eat today?`
+  }
+
+  return question
 }
 
 function removeUnadaptedPreviousStrategies(
@@ -1090,16 +1255,24 @@ export async function askHermes(
     },
   ]
 
-  if (request.sessionContext?.length) {
-    messages.push(
-      ...request.sessionContext.map(
-        (message) => ({
-          role: message.role,
-          content: message.content,
-        }),
-      ),
-    )
-  }
+  const modelSessionContext =
+  unclearFollowUp
+    ? (request.sessionContext ?? []).filter(
+        (message) =>
+          message.role === 'user',
+      )
+    : request.sessionContext
+
+if (modelSessionContext?.length) {
+  messages.push(
+    ...modelSessionContext.map(
+      (message) => ({
+        role: message.role,
+        content: message.content,
+      }),
+    ),
+  )
+}
 
   const {
     age,
@@ -1120,6 +1293,8 @@ ${conversationFocus}
 
 The current user message is an unclear follow-up.
 Answer it as a continuation of the RECENT CONVERSATION FOCUS above.
+Use the caregiver's recent USER messages to determine what the follow-up refers to.
+Do not use earlier assistant suggestions to redefine the topic of the caregiver's follow-up.
 Do not switch to a different topic just because known triggers or previous strategies are available.
 `
     : ''
@@ -1242,9 +1417,21 @@ Important:
       request,
     )
 
+  const refusedFoodFilteredActions =
+    removeRefusedFoodSuggestions(
+      uniqueSuggestedActions,
+      request,
+    )
+
+  const allergyClaimFilteredActions =
+    removeUnverifiedAllergyClaims(
+      refusedFoodFilteredActions,
+      request,
+    )
+
   const substituteAwareActions =
     ensurePreviousSuccessfulSubstitute(
-      uniqueSuggestedActions,
+      allergyClaimFilteredActions,
       request,
     )
 
@@ -1266,14 +1453,20 @@ Important:
       request,
     )
 
-  return {
-    possibleContext:
-      buildContextSummary(request),
-    suggestedActions:
-      safeSuggestedActions,
-    followUpQuestion:
+  const safeFollowUpQuestion =
+    sanitizeFollowUpQuestion(
       validated.followUpQuestion,
-    safetyNotice:
-      validated.safetyNotice ?? null,
-  }
+      request,
+  )
+
+return {
+  possibleContext:
+    buildContextSummary(request),
+  suggestedActions:
+    safeSuggestedActions,
+  followUpQuestion:
+    safeFollowUpQuestion,
+  safetyNotice:
+    validated.safetyNotice ?? null,
+}
 }
