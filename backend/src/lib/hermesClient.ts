@@ -1151,6 +1151,61 @@ function removeRepeatedActions(
 
   return accepted
 }
+function isAllergyDiagnosisQuestion(
+  request: HermesRequest,
+): boolean {
+  const text = [
+    request.context.currentSituation,
+    request.userMessage,
+  ]
+    .join(' ')
+    .toLowerCase()
+
+  const asksIfAllergic =
+    /\b(does|do|is|are|could|can).{0,40}\ballergic\b/i.test(
+      text,
+    ) ||
+    /\bdoes this mean.{0,40}\ballerg/i.test(
+      text,
+    )
+
+  const refusalMentioned =
+    /\b(refuse|refused|refusing|won't eat|will not eat)\b/i.test(
+      text,
+    )
+
+  return asksIfAllergic && refusalMentioned
+}
+
+function isMissingFoodRefusalContext(
+  request: HermesRequest,
+): boolean {
+  const text = [
+    request.context.currentSituation,
+    request.userMessage,
+  ]
+    .join(' ')
+    .toLowerCase()
+
+  const mentionsFoodRefusal =
+    /\b(refuse|refused|refusing|won't eat|will not eat|not eating|doesn't want to eat|does not want to eat)\b/i.test(
+      text,
+    )
+
+  const mentionsOnlyGenericMeal =
+    /\b(dinner|lunch|breakfast|meal|food|snack)\b/i.test(
+      text,
+    )
+
+  const explicitlyRefusedFoods =
+    getExplicitlyRefusedFoods(request)
+
+  return (
+    mentionsFoodRefusal &&
+    mentionsOnlyGenericMeal &&
+    explicitlyRefusedFoods.length === 0
+  )
+}
 
 export async function askHermes(
   request: HermesRequest,
@@ -1175,6 +1230,33 @@ export async function askHermes(
     }
   }
 
+  if (isAllergyDiagnosisQuestion(request)) {
+  return {
+    possibleContext:
+      buildContextSummary(request),
+    suggestedActions: [
+      'Food refusal by itself does not establish that a child has a food allergy.',
+      'If you are concerned about a possible food allergy, discuss the pattern with a qualified health professional.',
+    ],
+    followUpQuestion:
+      `Did ${childName} have any physical symptoms after eating or coming into contact with the food?`,
+    safetyNotice:
+      'This assistant cannot diagnose food allergies.',
+  }
+}
+
+if (
+  isMissingFoodRefusalContext(request)
+) {
+  return {
+    possibleContext:
+      buildContextSummary(request),
+    suggestedActions: [],
+    followUpQuestion:
+      'What food did your child refuse, and what happened when it was offered?',
+    safetyNotice: null,
+  }
+}
   const conflictingChildName =
     findConflictingChildName(request)
 

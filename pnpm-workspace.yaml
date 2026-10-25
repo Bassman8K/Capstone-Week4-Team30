@@ -3,10 +3,8 @@ packages:
   - 'backend'
 
 overrides:
-  # firebase-functions pulls in @types/express@4 transitively, which conflicts
-  # with our own @types/express@^5 (backend uses Express 5) and causes
-  # environment-dependent type errors depending on how pnpm hoists the two
-  # versions. Force one version everywhere.
+  "eslint-plugin-react-hooks>zod": "4.6.6"
+  "zod-validation-error>zod": "4.6.6"
   '@types/express': '^5.0.1'
   # next still bundles its own old postcss internally (separate from
   # the patched one Tailwind/Vite already use) — force it to a patched
@@ -48,3 +46,14 @@ auditConfig:
     # braces: no fixed release exists yet (3.0.3 is latest). Dev-only via
     # eslint-config-next. Remove this once braces 3.0.4 ships.
     - GHSA-vfj7-8cjw-p6xm
+
+minimumReleaseAgeExclude:
+  - uuid@11.1.1
+  - qs@6.15.4 || 6.16.0
+  - vitest@4.1.11
+  - '@vitest/mocker@4.1.11 || 4.1.12'
+  - ip-address@10.5.1 || 10.7.1 || 10.7.4
+  - vite@7.3.7
+  - next@16.4.1
+  - zod@4.6.6
+  - body-parser@1.20.9 || 2.4.0
