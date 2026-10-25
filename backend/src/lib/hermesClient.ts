@@ -1177,6 +1177,36 @@ function isAllergyDiagnosisQuestion(
   return asksIfAllergic && refusalMentioned
 }
 
+function isMissingFoodRefusalContext(
+  request: HermesRequest,
+): boolean {
+  const text = [
+    request.context.currentSituation,
+    request.userMessage,
+  ]
+    .join(' ')
+    .toLowerCase()
+
+  const mentionsFoodRefusal =
+    /\b(refuse|refused|refusing|won't eat|will not eat|not eating|doesn't want to eat|does not want to eat)\b/i.test(
+      text,
+    )
+
+  const mentionsOnlyGenericMeal =
+    /\b(dinner|lunch|breakfast|meal|food|snack)\b/i.test(
+      text,
+    )
+
+  const explicitlyRefusedFoods =
+    getExplicitlyRefusedFoods(request)
+
+  return (
+    mentionsFoodRefusal &&
+    mentionsOnlyGenericMeal &&
+    explicitlyRefusedFoods.length === 0
+  )
+}
+
 export async function askHermes(
   request: HermesRequest,
 ): Promise<HermesResponse> {
@@ -1215,6 +1245,18 @@ export async function askHermes(
   }
 }
 
+if (
+  isMissingFoodRefusalContext(request)
+) {
+  return {
+    possibleContext:
+      buildContextSummary(request),
+    suggestedActions: [],
+    followUpQuestion:
+      'What food did your child refuse, and what happened when it was offered?',
+    safetyNotice: null,
+  }
+}
   const conflictingChildName =
     findConflictingChildName(request)
 
