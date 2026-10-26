@@ -3,37 +3,36 @@ import Link from 'next/link'
 
 export const metadata: Metadata = {
   title: 'Home',
-  description: 'Welcome to the app',
+  description: "Track your child's day and get calm, practical help with mealtimes.",
 }
 
 export default function LandingPage() {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-8 p-8">
-      <div className="space-y-4 text-center">
-        <h1 className="text-4xl font-bold tracking-tight">
-          {process.env.NEXT_PUBLIC_APP_NAME ?? 'App'}
-        </h1>
-        <p className="max-w-md text-lg text-zinc-600 dark:text-zinc-400">
-          Your app description goes here. Edit{' '}
-          <code className="rounded bg-zinc-100 px-1 py-0.5 font-mono text-sm dark:bg-zinc-800">
-            src/app/page.tsx
-          </code>{' '}
-          to get started.
-        </p>
-      </div>
-      <div className="flex gap-4">
-        <Link
-          href="/auth/signin"
-          className="inline-flex items-center justify-center rounded-md bg-black px-6 py-2.5 text-sm font-medium text-white shadow transition-colors hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-zinc-200"
-        >
-          Sign in
-        </Link>
-        <Link
-          href="/auth/signup"
-          className="inline-flex items-center justify-center rounded-md border border-zinc-200 bg-white px-6 py-2.5 text-sm font-medium shadow-sm transition-colors hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:bg-zinc-800"
-        >
-          Create account
-        </Link>
+    <main className="flex min-h-screen items-center justify-center bg-white px-4">
+      <div className="bg-brand-100 w-full max-w-md space-y-8 rounded-2xl p-8 text-center shadow-sm">
+        <div className="space-y-4">
+          <h1 className="text-3xl font-semibold tracking-tight text-zinc-900">
+            {process.env.NEXT_PUBLIC_APP_NAME ?? 'App'}
+          </h1>
+          <p className="text-base text-zinc-700">
+            Track your child&apos;s sleep, meals and mood, and get calm, practical suggestions from
+            an AI assistant when mealtimes get hard.
+          </p>
+        </div>
+        <div className="space-y-3">
+          <Link
+            href="/auth/signin"
+            className="bg-brand-300 hover:bg-brand-400 block w-full rounded-full px-4 py-2.5 text-center text-sm font-medium text-zinc-900 transition-colors"
+          >
+            Log in
+          </Link>
+          <Link
+            href="/auth/signup"
+            className="block w-full rounded-full border border-zinc-300 bg-white px-4 py-2.5 text-center text-sm font-medium text-zinc-900 shadow-sm transition-colors hover:bg-zinc-50"
+          >
+            Create account
+          </Link>
+        </div>
       </div>
     </main>
   )
